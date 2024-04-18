@@ -1,0 +1,2 @@
+# Wutu
+Better than Rust
