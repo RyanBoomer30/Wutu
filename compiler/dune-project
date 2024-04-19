@@ -1,4 +1,4 @@
 (lang dune 2.9)
-(name ferdelance)
+(name wutu_experiment)
 
 (wrapped_executables false)

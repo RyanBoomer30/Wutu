@@ -1,0 +1,38 @@
+(library
+ (name wutu_experiment)
+ (modules experiment)
+ (libraries ounit2 extlib str wasm)
+ (wrapped false))
+
+; (ocamllex
+;  (modules lexer))
+
+; (ocamlyacc
+;  (modules parser))
+
+(executable
+ (name main)
+ (modules main)
+ (libraries unix str wutu_experiment))
+
+(executable
+ (name foo)
+ (modules foo)
+  (libraries
+    mirage-crypto
+    http
+    cohttp-async
+    base
+    async_kernel
+    core_unix.command_unix))
+
+
+; (test
+;  (name test)
+;  (modules test)
+;  (libraries unix str fdl_impl))
+
+(env
+ (dev
+  (flags
+   (:standard -warn-error -A))))

@@ -11,5 +11,5 @@ output/*/*.dSYM
 *.sw*
 *~
 *.log
-_build/*
+**/_build/*
 **/.DS_Store

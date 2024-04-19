@@ -3,8 +3,28 @@
   <head>
     <meta charset="utf-8">
     <title>Playground</title>
+    <link rel="stylesheet" href="index.css">
     <script src="main_web.js"></script>
   </head>
   <body>
+    <form id="PlayGround">
+      <h1><label for="code">Code type here uwu:</label></h1>
+      <textarea id="code" name="code" rows="50" cols="50"></textarea>
+      <br>
+      <input type="submit" value="Run">
+    </form>
+
+    <script>
+        // JavaScript to handle form submission
+        document.getElementById('PlayGround').onsubmit = function(event) {
+            event.preventDefault(); // Prevent the form from submitting in the traditional way
+
+            // Get the value from the form input
+            var codeInput = document.getElementById('code').value;
+
+            // Call the parse function with the input data
+            parse(codeInput);
+        };
+    </script>
   </body>
 </html>
