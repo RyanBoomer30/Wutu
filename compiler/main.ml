@@ -8,9 +8,7 @@ let input_file : string ref = ref ""
 let output_file : string ref = ref ""
 
 let () =
-  let speclist =
-    [ ("-o", Arg.Set_string output_file, "Set output file name") ]
-  in
+  let speclist = [("-o", Arg.Set_string output_file, "Set output file name")] in
   Arg.parse speclist
     (fun name ->
       if !input_set then
@@ -22,8 +20,6 @@ let () =
     "Compiler options:";
   (* let sep = "\n=================\n" in *)
   match compile_file_to_string with
-  | Error _ ->
-      eprintf "ERROR HAPPENED";
-  | Ok _  ->
-      printf "OKAY";
-  ;;
+  | Error _ -> eprintf "ERROR HAPPENED"
+  | Ok _ -> printf "OKAY"
+;;
