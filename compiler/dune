@@ -1,7 +1,7 @@
 (library
  (name wutu_experiment)
  (modules experiment)
- (libraries ounit2 extlib str wasm)
+ (libraries ounit2 extlib str)
  (wrapped false))
 
 ; (ocamllex
