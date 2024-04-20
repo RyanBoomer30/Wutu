@@ -1,5 +1,5 @@
 ## Baby steps
-- Get a JS harness working that can instantiate and call a Wasm module from a file
+- [x] Get a JS harness working that can instantiate and call a Wasm module from a file
 - Experiment with memory stores and loads, referencing [this](https://rsms.me/wasm-intro)
   - Think hard about bits vs bytes vs words: I think things should actually work nicely?
 - Experiment with interoperability, calling JS from Wutu and vice-versa
@@ -10,10 +10,10 @@
 - Think about how we would compile each operation, etc: experiment as you go!
   - Focus on which things get kept on the stack / popped off, and how we can save/dup
 
-- Start getting sandbox stuff working
-  - Start with a simple function from `string` to `.wasm` file, and send that back
-    - This would be SUPER simple, like the compiler from day 1 of the class
-  - Really, we need to _either_ return a `.wasm` file, or some (list of) compile time error(s)
+- [ ] Start getting sandbox stuff working
+  - [x] Web server working!
+  - [ ] Start with a simple function from `string` to `.wasm` file, and send that back
+  - [ ] Then, `string` to EITHER `.wasm` or `error`
 
 - Figure out an AST that we can target: make your own or use pre-existing (check resources)
 - Decide whether ANF is needed -> start to change compilation

@@ -16,8 +16,8 @@
  (libraries unix str wutu_experiment))
 
 (executable
- (name foo)
- (modules foo)
+ (name server)
+ (modules server)
  (libraries
   mirage-crypto
   http
