@@ -33,7 +33,6 @@ let handler ~body _sock req =
       (* Receive code data from Client *)
       Body.to_string body
       >>= fun body_string ->
-      Stdlib.Printf.eprintf "Received: %s\n%!" body_string;
       (* Compile the code (rn just a placeholder): we will be able
          to produce wasm directly instead of needing this extra bit *)
       let wasm_filename = "simple.wasm" in
@@ -43,9 +42,7 @@ let handler ~body _sock req =
         `Assoc [("result", `String "success"); ("value", `String wasm_binary_string)]
       in
       let response_body = Yojson.Basic.to_string json_response in
-      Stdlib.Printf.eprintf "Response: %s\n%!" response_body;
       let body = Body.of_string response_body in
-      Stdlib.Printf.eprintf "Responding\n%!";
       Server.respond ~headers `OK ~body
   | _ ->
       Stdlib.Printf.eprintf "Nope%!";
@@ -54,7 +51,6 @@ let handler ~body _sock req =
 
 let start_server port () =
   Stdlib.Printf.eprintf "Listening for HTTP on port %d\n" port;
-  Stdlib.Printf.eprintf "Try curl -X POST -d 'foo bar' http://localhost:%d\n%!" port;
   Server.create ~on_handler_error:`Raise (Async.Tcp.Where_to_listen.of_port port) handler
   >>= fun _ ->
   Stdlib.Printf.eprintf "Server started\n";
