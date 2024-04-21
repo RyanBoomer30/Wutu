@@ -21,15 +21,15 @@
     - [ ] Do we need to change any of the deprecated stuff? Hopefully no
 
 - [ ] Make our own AST + pretty-printer
-  - [ ] Pipe through `wat2wasm` before we run, which is annoying but oh well
-        (might actually fit in our current infrastructure easily)
-  - We should experiment first and sketch out cases to see what we will have to include,
-    or maybe just start with the easy stuff and go from there? Probably better to sketch
+  - [x] Make AST
+    - [ ] we may need memory.grow later, depending on how GC works ...
+    - [ ] Maybe expand to make numeric operations not just i64, if necessary
   - [ ] Can we use `[@@deriving sexp]` to make the pretty-printer easy? IDK how it works...
     - Look at `.wat` format resources to see what is actually needed and go from there
     - Speaking of `.wat` format details, look at 64-bit literals and reserved symbols
-  - [ ] we may need memory.grow later, depending on how GC works ...
-  - [ ] Maybe expand to make * / + / - stuff 
+
+  - [ ] Pipe through `wat2wasm` before we run, which is annoying but oh well
+        (might actually fit in our current infrastructure easily)
 
 - [ ] We should be able to adapt current test runners, using `node` as appropriate
   - Turn to this once we have working tiny compiler

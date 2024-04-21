@@ -16,9 +16,9 @@ let () =
         input_set := true;
         input_file := name
       ) )
-    "Compiler options:";
-  (* let sep = "\n=================\n" in *)
-  (* match compile_file_to_string with
-  | Error _ -> eprintf "ERROR HAPPENED"
-  | Ok _ -> printf "OKAY" *)
+    "Compiler options:"
 ;;
+(* let sep = "\n=================\n" in *)
+(* match compile_file_to_string with
+   | Error _ -> eprintf "ERROR HAPPENED"
+   | Ok _ -> printf "OKAY" *)

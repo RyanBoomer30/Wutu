@@ -16,6 +16,8 @@
         i64.const +4 ;; error code
         call $error
       )
+      (else
+      )
     )
     ;; untag and return it
     local.get $x

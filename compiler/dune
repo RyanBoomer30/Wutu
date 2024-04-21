@@ -1,6 +1,6 @@
 (library
  (name wutu)
- (modules exprs wast)
+ (modules exprs wast pretty assembly errors)
  (libraries ounit2 extlib str)
  (wrapped false))
 
