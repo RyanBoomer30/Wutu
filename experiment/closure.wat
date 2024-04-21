@@ -9,7 +9,7 @@
   ;; there should be exactly n + 1 of these
   (type (func (result i64)))
   (type (func (param i64) (result i64)))
-  (type (func (param i64) (param i64) (result i64)))
+  (type (func (param i64 i64) (result i64)))
 
   (func $outer (param $clos i64) (param $x i64) (result i64)
     (local $ret i64)
