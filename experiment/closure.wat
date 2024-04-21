@@ -109,7 +109,7 @@
     ;; we just called add to get tmp,
     ;; time to call tmp to get our result!
     local.get $tmp
-    ;; i64.const +2
+    i64.const +2
 
     local.get $tmp
     i32.wrap_i64
@@ -122,6 +122,6 @@
     ;; that we pushed on for the calls agrees with the arity
     ;; that we specify. then, at runtime, it checks if the
     ;; arity we specify is the actual arity
-    call_indirect (type 1)
+    call_indirect (type 2)
   )
 )

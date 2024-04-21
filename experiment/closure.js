@@ -20,7 +20,7 @@ WebAssembly.instantiate(wasmBuffer, importObject).then(obj => {
     console.log(obj.instance.exports.ocsh());
   } catch (e) {
     console.log(e instanceof WebAssembly.RuntimeError); // true
-    console.log(e.message); 
+    console.log(e.message); // "Hello"
     console.log(e.name); // "RuntimeError"
     console.log(e.fileName); // "someFile"
     console.log(e.lineNumber); // 10

@@ -1,6 +1,7 @@
 (module  
   (func $error (import "imports" "error") (param i64) (param i64))
   
+  ;; NOTE: Could be inline but basically just an implementation detail
   (func $tag_check_three (param $x i64) (result i64)
     i64.const +0x0000000000000007
     local.get $x
