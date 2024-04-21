@@ -1,5 +1,4 @@
 open Printf
-open Experiment
 
 let input_set = ref false
 
@@ -19,7 +18,7 @@ let () =
       ) )
     "Compiler options:";
   (* let sep = "\n=================\n" in *)
-  match compile_file_to_string with
+  (* match compile_file_to_string with
   | Error _ -> eprintf "ERROR HAPPENED"
-  | Ok _ -> printf "OKAY"
+  | Ok _ -> printf "OKAY" *)
 ;;

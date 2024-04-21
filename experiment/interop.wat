@@ -1,8 +1,14 @@
 (module
   (import "js" "tbl" (table 1 funcref))
-  (func $do_stuff (import "imports" "doStuff") (param i64 i64) (result i64))
 
-  (memory (import "js" "mem") 10)
+  (import "imports" "doStuff" (func $do_stuff (type 2)))
+
+  ;;  (func $do_stuff (import "imports" "doStuff") (param i64 i64) (result i64))
+
+  (import "js" "mem" (memory 10))
+
+  ;;  (memory (import "js" "mem") 10)
+  
   (global $r15 (mut i32) (i32.const 0))
 
   (elem (i32.const 0) $id)
@@ -17,7 +23,7 @@
     local.get $x
   )
 
-  (func $ocsh (export "ocsh") (result i64)
+  (func $ocsh (export "ocsh") (type 0)
     (local $id_clos i64)
 
     ;; build and load the add closure

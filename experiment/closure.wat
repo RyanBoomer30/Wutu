@@ -1,5 +1,6 @@
 (module
-  (import "js" "tbl" (table 2 funcref))
+  (table (import "js" "tbl") 2 funcref)
+;;  (import "js" "tbl" (table 2 funcref))
   (memory (import "js" "mem") 10)
   (global $r15 (mut i32) (i32.const 0))
 
@@ -58,7 +59,7 @@
     i64.add
   )
 
-  (func $ocsh (export "ocsh") (result i64)
+  (func $ocsh (export "ocsh") (type 0)
     (local $add i64)
     (local $tmp i64)
 

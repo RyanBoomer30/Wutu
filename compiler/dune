@@ -1,6 +1,6 @@
 (library
- (name wutu_experiment)
- (modules experiment)
+ (name wutu)
+ (modules exprs wast)
  (libraries ounit2 extlib str)
  (wrapped false))
 
@@ -13,7 +13,7 @@
 (executable
  (name main)
  (modules main)
- (libraries unix str wutu_experiment))
+ (libraries unix str wutu))
 
 (executable
  (name server)
