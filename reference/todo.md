@@ -7,6 +7,15 @@
       look at `runner` to see how they do it
 
 - [ ] Update naive_stack_allocation to first return indices, then map them to slots
+- [ ] Code generation (AKA the hard part...): test as you go!
+  - We probably want to make no builtins helper easier to use in tests
+  - Walk through adder -> boa -> cobra -> etc
+  - Might have to add `I64ConstHex` or something: check `wat` spec for what's supported
+- [ ] Runtime functions
+  - First `print`, since that gets called (and basic runtime), then `equal`
+    - Maybe for `print` we can try to do a conversion somehow? Starting with numbers is fine
+- [ ] GC
+  - [ ] Interactions with tail calls
 
 - [ ] Figure out how to serve `.wasm` files
   1. We can write our `.wat` on the server, invoke `wat2wasm`, and then read the resulting `.wasm` file
@@ -15,6 +24,7 @@
   - Depending on what we choose, we will have to update `.server` accordingly,
     (probably fix the deprecated stuff too), and maybe extra `compile` handlers
     - Remember, don't mix Core with the standard library stuff
+- [ ] Make file rule for server? Phony exec? Actual build? There were some compilation troubles…
 
 
 ## Think
@@ -24,3 +34,11 @@
   - We don't have to worry about "RSP" and "RBP": we can surgically skip, or compare against stack top
 - Tail calls might be annoying with the shadow stack, but at least we have control over the calls
   - It should be a matter of slipping the relevant bookkeeping in where we can effectively
+
+Interop:
+- For arbitrary interop, how would we be able to call with non-SNAKEVAL values?
+  Ex: tuples, etc. Try to get that working later
+  - Could also get extern keyword or something.
+    Play around and see what cool things we can do!
+- We can turn SNAKE closures and tuples into JS lambdas and arrays.
+  - Test out how these are printed, especially for cyclic data, maybe we can use some of it for print
