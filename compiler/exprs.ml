@@ -19,6 +19,10 @@ type 'a envt = (string * 'a) list
 
 type 'a tag_envt = (tag * 'a) list
 
+type target =
+  | X86_64
+  | Wasm
+
 type sourcespan =
   | SourceLoc of Lexing.position * Lexing.position
   | NativeLoc of string

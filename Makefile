@@ -24,6 +24,9 @@ test: main $(TESTDIR)/*.ml
 	$(BUILD) -I compiler -package $(PKGS) $(TESTDIR)/test.native
 	mv test.native test
 
+## OCAML TESTS ##
+
+# x86_64
 tests/output/%.run: tests/output/%.o $(COMPDIR)/main.c $(COMPDIR)/gc.c
 	clang $(CLANG_FLAGS) -o $@ $(COMPDIR)/gc.c $(COMPDIR)/main.c $<
 
@@ -34,6 +37,19 @@ tests/output/%.o: tests/output/%.s
 tests/output/%.s: tests/input/%.$(SNAKE_EXT) main
 	./main $< > $@
 
+
+# Wasm
+tests/output/%.wasm: tests/output/%.wat
+	wat2wasm $< -o $@ --enable-tail-call
+
+.PRECIOUS: tests/output/%.wat
+tests/output/%.wat: tests/input/%.$(SNAKE_EXT) main
+	./main $< > $@ -wasm
+
+
+## FILE TESTS ##
+
+# x86_64
 tests/output/do_pass/%.run: tests/output/do_pass/%.o $(COMPDIR)/main.c $(COMPDIR)/gc.c
 	clang $(CLANG_FLAGS) -o $@ $(COMPDIR)/gc.c $(COMPDIR)/main.c $<
 
@@ -91,7 +107,7 @@ tests/output/dont_err/%.s: tests/input/dont_err/%.$(SNAKE_EXT) main
 
 
 clean:
-	rm -rf tests/output/*.o tests/output/*.s tests/output/*.dSYM tests/output/*.run *.log *.o
-	rm -rf tests/output/*/*.o tests/output/*/*.s tests/output/*/*.dSYM tests/output/*/*.run
+	rm -rf tests/output/*.o tests/output/*.s tests/output/*.dSYM tests/output/*.run tests/output/*.wasm tests/output/*.wat *.log *.o
+	rm -rf tests/output/*/*.o tests/output/*/*.s tests/output/*/*.dSYM tests/output/*/*.run tests/output/*/*.wasm tests/output/*/*.wat
 	rm -rf _build/
 	rm -f main test

@@ -2,6 +2,7 @@ open Unix
 open Filename
 open Str
 open Asmgen
+open Watgen
 open Printf
 open OUnit2
 open ExtLib
@@ -55,21 +56,28 @@ let parse_file (name : string) input_file : sourcespan program =
 
 let compile_string_to_string
     ?(no_builtins = false)
+    ?(target = X86_64)
     (alloc_strat : alloc_strategy)
     (name : string)
     (input : string) : string pipeline =
+  let comp =
+    match target with
+    | X86_64 -> compile_to_asm_string
+    | Wasm -> compile_to_wat_string
+  in
   Ok (input, [])
   |> add_phase source (fun x -> x)
   |> add_err_phase parsed (fun input -> try Ok (parse_string name input) with err -> Error [err])
-  |> compile_to_string ~no_builtins alloc_strat
+  |> comp ~no_builtins alloc_strat
 ;;
 
 let compile_file_to_string
     ?(no_builtins = false)
+    ?(target = X86_64)
     (alloc_strat : alloc_strategy)
     (name : string)
     (input_file : string) : string pipeline =
-  compile_string_to_string ~no_builtins alloc_strat name (string_of_file input_file)
+  compile_string_to_string ~no_builtins alloc_strat name (string_of_file input_file) ~target
 ;;
 
 let make_tmpfiles (name : string) (std_input : string) =
@@ -90,6 +98,28 @@ let run_no_vg (program_name : string) args std_input : (string, string) result =
   let ran_pid =
     Unix.create_process (program_name ^ ".run")
       (Array.of_list ([program_name ^ ".run"] @ args))
+      rstdin rstdout rstderr
+  in
+  let _, status = waitpid [] ran_pid in
+  let result =
+    match status with
+    | WEXITED 0 -> Ok (string_of_file rstdout_name)
+    | WEXITED n -> Error (sprintf "Error %d: %s" n (string_of_file rstderr_name))
+    | WSIGNALED n -> Error (sprintf "Signalled with %d while running %s." n program_name)
+    | WSTOPPED n -> Error (sprintf "Stopped with signal %d while running %s." n program_name)
+  in
+  List.iter close [rstdout; rstderr; rstdin];
+  List.iter unlink [rstdout_name; rstderr_name];
+  result
+;;
+
+let run_wasm (program_name : string) args std_input : (string, string) result =
+  let rstdout, rstdout_name, rstderr, rstderr_name, rstdin = make_tmpfiles "wrun" std_input in
+  let ran_pid =
+    Unix.create_process "node"
+      (* all args could possibly be in run_(no_)vg is heap size, which doesn't
+         really apply for us... maybe we could reinterpret it in pages? *)
+      (Array.of_list ["node"; "tests/harness.js"; program_name ^ ".wasm"])
       rstdin rstdout rstderr
   in
   let _, status = waitpid [] ran_pid in
@@ -130,17 +160,27 @@ let run_vg (program_name : string) args std_input : (string, string) result =
 ;;
 
 let run_asm
+    ?(target = X86_64)
     (asm_string : string)
     (out : string)
     (runner : string -> string list -> string -> (string, string) result)
     args
     (std_input : string) =
-  let outfile = open_out (out ^ ".s") in
+  let outfile =
+    match target with
+    | X86_64 -> open_out (out ^ ".s")
+    | Wasm -> open_out (out ^ ".wat")
+  in
   fprintf outfile "%s" asm_string;
   close_out outfile;
   let bstdout, bstdout_name, bstderr, bstderr_name, bstdin = make_tmpfiles "build" "" in
+  let ext =
+    match target with
+    | X86_64 -> ".run"
+    | Wasm -> ".wasm"
+  in
   let built_pid =
-    Unix.create_process "make" (Array.of_list ["make"; out ^ ".run"]) bstdin bstdout bstderr
+    Unix.create_process "make" (Array.of_list ["make"; out ^ ext]) bstdin bstdout bstderr
   in
   let _, status = waitpid [] built_pid in
   let try_running =
@@ -163,11 +203,15 @@ let run_asm
   result
 ;;
 
-let run p out runner no_builtins args std_input alloc_strat =
-  let maybe_asm_string = compile_to_string ~no_builtins alloc_strat (Ok (p, [])) in
+let run ?(target = X86_64) p out runner no_builtins args std_input alloc_strat =
+  let maybe_asm_string =
+    match target with
+    | X86_64 -> compile_to_asm_string ~no_builtins alloc_strat (Ok (p, []))
+    | Wasm -> compile_to_wat_string ~no_builtins alloc_strat (Ok (p, []))
+  in
   match maybe_asm_string with
   | Error (errs, _) -> Error (ExtString.String.join "\n" (print_errors errs))
-  | Ok (asm_string, _) -> run_asm asm_string out runner args std_input
+  | Ok (asm_string, _) -> run_asm asm_string out runner args std_input ~target
 ;;
 
 let run_anf p out runner args std_input =
@@ -241,6 +285,7 @@ let test_run
     ?(no_builtins = false)
     ?(args = [])
     ?(std_input = "")
+    ?(target = X86_64)
     alloc_strat
     program_str
     outfile
@@ -248,13 +293,51 @@ let test_run
     ?(cmp = ( = ))
     test_ctxt =
   let full_outfile = "tests/output/" ^ outfile in
+  let runner =
+    match target with
+    | X86_64 -> run_no_vg
+    | Wasm -> run_wasm
+  in
   let result =
     try
       let program = parse_string outfile program_str in
-      run program full_outfile run_no_vg no_builtins args std_input alloc_strat
+      run program full_outfile runner no_builtins args std_input alloc_strat ~target
     with err -> Error (Printexc.to_string err)
   in
   assert_equal (Ok (expected ^ "\n")) result ~cmp ~printer:result_printer
+;;
+
+let test_err
+    ?(no_builtins = false)
+    ?(args = [])
+    ?(std_input = "")
+    ?(target = X86_64)
+    alloc_strat
+    program_str
+    outfile
+    errmsg
+    ?(vg = false)
+    test_ctxt =
+  let full_outfile = "tests/output/" ^ outfile in
+  let runner =
+    match target with
+    | X86_64 ->
+        if vg then
+          run_vg
+        else
+          run_no_vg
+    | Wasm -> run_wasm
+  in
+  let result =
+    try
+      let program = parse_string outfile program_str in
+      run program full_outfile runner no_builtins args std_input alloc_strat ~target
+    with err -> Error (Printexc.to_string err)
+  in
+  assert_equal (Error errmsg) result ~printer:result_printer ~cmp:(fun check result ->
+      match (check, result) with
+      | Error expect_msg, Error actual_message -> String.exists actual_message expect_msg
+      | _ -> false )
 ;;
 
 let test_run_anf
@@ -274,6 +357,7 @@ let test_run_valgrind
     ?(no_builtins = false)
     ?(args = [])
     ?(std_input = "")
+    ?(target = X86_64)
     alloc_strat
     program_str
     outfile
@@ -290,45 +374,16 @@ let test_run_valgrind
   assert_equal (Ok (expected ^ "\n")) result ~cmp ~printer:result_printer
 ;;
 
-let test_err
-    ?(no_builtins = false)
-    ?(args = [])
-    ?(std_input = "")
-    alloc_strat
-    program_str
-    outfile
-    errmsg
-    ?(vg = false)
-    test_ctxt =
-  let full_outfile = "tests/output/" ^ outfile in
-  let runner =
-    if vg then
-      run_vg
-    else
-      run_no_vg
-  in
-  let result =
-    try
-      let program = parse_string outfile program_str in
-      run program full_outfile runner no_builtins args std_input alloc_strat
-    with err -> Error (Printexc.to_string err)
-  in
-  assert_equal (Error errmsg) result ~printer:result_printer ~cmp:(fun check result ->
-      match (check, result) with
-      | Error expect_msg, Error actual_message -> String.exists actual_message expect_msg
-      | _ -> false )
-;;
-
-let test_run_input filename ?(args = []) alloc_strat expected test_ctxt =
+let test_run_input ?(target = X86_64) filename ?(args = []) alloc_strat expected test_ctxt =
   test_run ~args ~std_input:"" alloc_strat
     (string_of_file ("tests/input/" ^ filename))
-    filename expected test_ctxt
+    filename expected test_ctxt ~target
 ;;
 
-let test_err_input filename ?(args = []) alloc_strat expected test_ctxt =
+let test_err_input ?(target = X86_64) filename ?(args = []) alloc_strat expected test_ctxt =
   test_err ~args ~std_input:"" alloc_strat
     (string_of_file ("tests/input/" ^ filename))
-    filename expected test_ctxt
+    filename expected test_ctxt ~target
 ;;
 
 let chomp str =

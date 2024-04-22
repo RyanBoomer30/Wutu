@@ -12,11 +12,16 @@ open Pretty
 
 let alloc_strategy = Register
 
+(* this lets us control t and terr, changing between x86_64 and WebAssembly
+   For now, this doesn't change tanf, but this can be updated
+   This also doesn't change tr, tgc, tvg, etc: because those don't apply to Wasm *)
+let target = X86_64
+
 (* for now, everything but tr uses Naive register allocation
    we can revisit these test helpers to make them more flexible later *)
-
+   
 let t name program input expected =
-  name >:: test_run ~args:[] ~std_input:input alloc_strategy program name expected
+  name >:: test_run ~args:[] ~std_input:input ~target:target alloc_strategy program name expected
 ;;
 
 (* always uses register allocation *)
@@ -45,7 +50,7 @@ let tvgc name heap_size program input expected =
 ;;
 
 let terr name program input expected =
-  name >:: test_err ~args:[] ~std_input:input alloc_strategy program name expected
+  name >:: test_err ~args:[] ~std_input:input ~target:target alloc_strategy program name expected
 ;;
 
 let tgcerr ?(no_builtins = false) name heap_size program input expected =

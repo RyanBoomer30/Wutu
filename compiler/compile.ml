@@ -69,7 +69,6 @@ let count_vars e =
   helpA e
 ;;
 
-
 let rec find_decl (ds : 'a decl list) (name : string) : 'a decl option =
   match ds with
   | [] -> None

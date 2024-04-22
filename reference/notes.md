@@ -33,3 +33,7 @@ Interoperability is particularly interesting:
 - Talk about class, include compiler pipeline information and other technical details
   - This could also be more like a blog post documenting decisions and ideas
 - Syntax highlighting one day?
+
+- Probably actually add in the `tailcall` flag, since Safari doesn't support tail calls
+  - Maybe later we can pass that with the request (along with other flags)
+  - Some of the current flags (like allocation strategy) are not applicable with Wasm compiler

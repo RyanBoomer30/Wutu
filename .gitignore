@@ -2,11 +2,15 @@ main
 test
 tests/output/*.o
 tests/output/*.run
+tests/output/*.wat
 tests/output/*.s
+tests/output/*.wasm
 tests/output/*.dSYM
 tests/output/*/*.o
 tests/output/*/*.run
+tests/output/*/*.wat
 tests/output/*/*.s
+tests/output/*/*.wasm
 tests/output/*/*.dSYM
 *.sw*
 *~
