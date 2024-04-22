@@ -1,6 +1,7 @@
 (library
  (name wutu)
  (modules
+  asmgen
   assembly
   compile
   errors
@@ -11,7 +12,8 @@
   phases
   pretty
   runner
-  wast)
+  wast
+  watgen)
  (libraries ounit2 extlib str)
  (wrapped false))
 
@@ -33,10 +35,16 @@
   mirage-crypto
   yojson))
 
+(library
+ (name tester)
+ (modules helpers integration unit)
+ (libraries ounit2 extlib str wutu)
+ (wrapped false))
+
 (test
  (name test)
  (modules test)
- (libraries unix str wutu))
+ (libraries tester wutu))
 
 (include_subdirs unqualified)
 

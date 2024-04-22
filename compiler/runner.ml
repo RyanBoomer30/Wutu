@@ -1,7 +1,7 @@
 open Unix
 open Filename
 open Str
-open Compile
+open Asmgen
 open Printf
 open OUnit2
 open ExtLib
@@ -481,8 +481,11 @@ let input_file_test_suite () =
          "do_err"
          >::: List.map (fun f -> f >:: test_does_err f) (safe_readdir "tests/input/do_err" ".wutu");
          "dont_pass"
-         >::: List.map (fun f -> f >:: test_doesnt_run f) (safe_readdir "tests/input/dont_pass" ".wutu");
+         >::: List.map
+                (fun f -> f >:: test_doesnt_run f)
+                (safe_readdir "tests/input/dont_pass" ".wutu");
          "dont_err"
-         >::: List.map (fun f -> f >:: test_doesnt_err f) (safe_readdir "tests/input/dont_err" ".wutu")
-       ]
+         >::: List.map
+                (fun f -> f >:: test_doesnt_err f)
+                (safe_readdir "tests/input/dont_err" ".wutu") ]
 ;;

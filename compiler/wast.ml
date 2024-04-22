@@ -121,7 +121,7 @@ let string_of_func_type_top ft = sprintf "(type (func %s))" (string_of_func_type
 let rec string_of_winstr winst =
   match winst with
   | WComment s -> "    ;; " ^ s
-  | WCommentInstr (inst, s) -> (string_of_winstr inst) ^ "  ;; " ^ s
+  | WCommentInstr (inst, s) -> string_of_winstr inst ^ "  ;; " ^ s
   | WI32Const i -> sprintf "    i32.const %+d" i
   | WI64Const i -> sprintf "    i64.const %+Ld" i
   | WGlobalGet s -> sprintf "    global.get %s" s

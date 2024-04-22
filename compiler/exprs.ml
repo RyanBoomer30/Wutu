@@ -11,6 +11,10 @@ let debug_printf fmt =
 
 type tag = int
 
+(* You might also find
+     type 'a envt = 'a StringMap.t
+   to be useful instead of a simple list of pairs. *)
+
 type 'a envt = (string * 'a) list
 
 type 'a tag_envt = (tag * 'a) list
