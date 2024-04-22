@@ -1,0 +1,11 @@
+def link(first, rest):
+  (first, rest)
+
+# does the function to all elements of the list, returns true
+def do_to_all(f, l):
+    if l == nil: true
+  else:
+    f(l[0]); do_to_all(f, l[1])
+
+let l1 = link(1, link(2, link(3, nil))) in
+do_to_all(print, l1)

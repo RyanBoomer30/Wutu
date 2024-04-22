@@ -1,0 +1,5 @@
+let three  = (0, 0, 0) in
+let three1 = three[0] := 1 in
+let three2 = three[1] := 2 in
+# 1 + (2 * 2)
+three1 + (three2 + three[1])

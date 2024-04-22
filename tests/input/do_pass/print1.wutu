@@ -1,0 +1,3 @@
+let x = 1 in
+let y = print(add1(x)) in
+print(add1(add1(y)))

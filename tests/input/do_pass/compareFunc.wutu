@@ -1,0 +1,4 @@
+def equalOne(n):
+  n == 1
+
+if equalOne(2): true else: equalOne(1)

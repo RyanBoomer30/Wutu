@@ -1,0 +1,46 @@
+(library
+ (name wutu)
+ (modules
+  assembly
+  compile
+  errors
+  exprs
+  graph
+  lexer
+  parser
+  phases
+  pretty
+  runner
+  wast)
+ (libraries ounit2 extlib str)
+ (wrapped false))
+
+(executable
+ (name main)
+ (modules main)
+ (libraries unix str wutu))
+
+(executable
+ (name server)
+ (modules server)
+ (libraries
+  async_kernel
+  base
+  base64
+  cohttp-async
+  core_unix.command_unix
+  http
+  mirage-crypto
+  yojson))
+
+(test
+ (name test)
+ (modules test)
+ (libraries unix str wutu))
+
+(include_subdirs unqualified)
+
+(env
+ (dev
+  (flags
+   (:standard -warn-error -A))))

@@ -1,0 +1,6 @@
+let deeze = (lambda (f): 
+    let rec foo = (lambda (x) : f(bar(x))),
+            bar = (lambda (x) : x + 2)
+      in foo)
+  in let nuts = deeze((lambda (x): x + 1))
+  in nuts(1)

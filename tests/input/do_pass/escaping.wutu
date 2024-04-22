@@ -1,0 +1,2 @@
+let foo = (lambda: (lambda (x): 2)) in
+foo()(1)

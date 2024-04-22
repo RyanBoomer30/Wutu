@@ -1,0 +1,5 @@
+def fact(acc, n):
+  if n < 1: printStack(acc)
+  else: fact(acc * n, n - 1)
+
+fact(1, 20)

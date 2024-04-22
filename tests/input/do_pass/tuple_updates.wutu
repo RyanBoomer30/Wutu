@@ -1,0 +1,11 @@
+let three  = (0, 0, 0) in
+let three1 = three[0] := 1 in
+let three2 = three[1] := 2 in
+three[2] := 3;
+# Now three equals (1, 2, 3), three1 == 1 and three2 == 2
+
+let pair = (5, 6) in
+pair[1] := three[1] := 10;
+# Now three equals (1, 10, 3) and pair equals (5, 10)
+
+(three, pair)

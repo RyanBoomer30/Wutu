@@ -1,0 +1,4 @@
+def max(x, y):
+  if x < y: y else: x
+
+max(3, 4) + max(4, 20)

@@ -1,0 +1,40 @@
+def link(first, rest):
+  (first, rest)
+
+# gets the length of a list
+def length(l):
+  if l == nil: 0
+  else:
+    1 + length(l[1])
+
+
+# sums a list of numbers using an accumulator parameter
+def sum(l):
+  sumhelp(l, 0)
+
+def sumhelp(l, acc):
+  if l == nil: acc
+  else:
+    sumhelp(l[1], acc + l[0])
+
+
+# appends the second list onto the first list
+def append(l, r):
+  if l == nil: r
+  else: link(l[0], append(l[1], r))
+
+
+# reverses a list using a helper
+def reverse(l):
+  reversehelp(l, nil)
+
+def reversehelp(l, acc):
+  if l == nil: acc
+  else: reversehelp(l[1], link(l[0], acc))
+
+
+let l1 = link(1, link(2, link(3, nil))) in
+let l2 = link(0, link(-1, link(-2, nil))) in
+let r1 = reverse(l1) in
+print(sum(l1));
+append(r1, l2)

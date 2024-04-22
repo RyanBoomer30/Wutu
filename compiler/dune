@@ -1,39 +1,7 @@
-(library
- (name wutu)
- (modules exprs wast pretty assembly errors)
- (libraries ounit2 extlib str)
- (wrapped false))
+; dune complains when these are at the top level dune file...
 
-; (ocamllex
-;  (modules lexer))
+(ocamllex
+ (modules lexer))
 
-; (ocamlyacc
-;  (modules parser))
-
-(executable
- (name main)
- (modules main)
- (libraries unix str wutu))
-
-(executable
- (name server)
- (modules server)
- (libraries
-  mirage-crypto
-  http
-  cohttp-async
-  base
-  async_kernel
-  core_unix.command_unix
-  base64
-  yojson))
-
-; (test
-;  (name test)
-;  (modules test)
-;  (libraries unix str fdl_impl))
-
-(env
- (dev
-  (flags
-   (:standard -warn-error -A))))
+(ocamlyacc
+ (modules parser))

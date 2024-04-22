@@ -2,13 +2,9 @@
   1. We can write our `.wat` on the server, invoke `wat2wasm`, and then read the resulting `.wasm` file
   2. We could try to parse into the `Wasm` ast, then turn that into bytes
   3. We could go in two steps: write `.wasm` to the server, and return. THEN, fetch `.wasm` directly
-  - [ ] Maybe move `server.ml` into playground
-
-- [ ] We should be able to adapt current test runners, using `node` as appropriate
-  - Turn to this once we have working tiny compiler
-  - Think how test will be able to run files with either...
-    maybe a new flag? Probably needs new command
-
+  - Depending on what we choose, we will have to update `.server` accordingly,
+    (probably fix the deprecated stuff too), and maybe extra `compile` handlers
+    - Remember, don't mix Core with the standard library stuff
 
 ## Think
 - Read more about how LLVM uses the shadow stack

@@ -1,0 +1,8 @@
+let x = (if (9 + 10 == 21): 21 else: 69),
+    y = (let shadow x = 45 in x * -1),
+    z = (if (!(y == 0)): sub1(25) else: 90000)
+  in 
+  if ((x + y) > 0): 
+    x + (2 * z) 
+  else:
+    (y - 100) * z

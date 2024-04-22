@@ -1,0 +1,5 @@
+let x = print(1) in
+let y = print(2) in
+let z = print(3) in
+let a = print(4) in
+add1(y)

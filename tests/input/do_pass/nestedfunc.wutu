@@ -1,0 +1,4 @@
+def plus1(n):
+  n + 1
+
+plus1(plus1(plus1(1)))

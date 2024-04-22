@@ -1,0 +1,5 @@
+let x = 11,
+    is_funny = (if ((x == 420) || (x == 69)): true else: !(true))
+in
+if is_funny: (print(is_funny) && (false && print(123123123)))
+   else: (!(print(is_funny)) || (print(123123123)))

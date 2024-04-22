@@ -1,0 +1,6 @@
+def fact(acc, n):
+  if n < 1: printStack(acc)
+  else: fact(acc * n, n - 1) + 0
+  # NOTE: This + 0 is to prevent tail-recursion in this example
+
+fact(1, 20)

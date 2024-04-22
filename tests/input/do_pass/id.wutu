@@ -1,0 +1,4 @@
+def id(x):
+  x
+
+id(false)

@@ -1,0 +1,7 @@
+def evenNat(n):
+  if n == 0: true else: oddNat(n - 1)
+
+and def oddNat(n):
+  if n == 0: false else: evenNat(n - 1)
+
+evenNat(21)

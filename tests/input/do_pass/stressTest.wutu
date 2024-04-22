@@ -1,0 +1,12 @@
+def death_acc(n, acc):
+    if n == 0:
+        acc
+    else:
+      death_acc(n - 1, acc + 1)
+
+def death(n):
+    # increasing arity tail call
+    death_acc(n, 0)
+
+# this will stack overflow and segfault if tail calls weren't implemented
+death(696969)
