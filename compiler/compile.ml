@@ -754,34 +754,33 @@ let free_vars_cache (prog : 'a aprogram) : ('a * StringSet.t) aprogram =
 (* we return a map from tags to (maps from names to where they can be found on the stack)
    we use nested environments, since a name can now be found in multiple different places.
    we use a tag environment to avoid having to change ANF to give names to all functions *)
-let naive_stack_allocation (prog : (tag * StringSet.t) aprogram) :
-    (tag * StringSet.t) aprogram * arg envt tag_envt =
-  (* adds [name |-> arg] to the env at tag, creating a new outer env for tag if necessary *)
-  let rec add_to_env (tag : tag) (name : string) (arg : arg) (env : arg envt tag_envt) :
-      arg envt tag_envt =
+(* this function maps to indices, not actual RBP-X stuff *)
+let stack_slot_allocation (prog : (tag * StringSet.t) aprogram) :
+    (tag * StringSet.t) aprogram * int envt tag_envt =
+  (* adds idx to the env at tag, creating a new outer env for tag if necessary *)
+  let rec add_to_env (tag : tag) (name : string) (idx : int) (env : int envt tag_envt) :
+      int envt tag_envt =
     match env with
-    | [] -> [(tag, [(name, arg)])]
+    | [] -> [(tag, [(name, idx)])]
     | (t, sub_env) :: rest ->
         if t = tag then
-          (t, (name, arg) :: sub_env) :: rest
+          (t, (name, idx) :: sub_env) :: rest
         else
-          (t, sub_env) :: add_to_env tag name arg rest
+          (t, sub_env) :: add_to_env tag name idx rest
   in
-  (* offset stores the next _available_ stack slot (ex: offset 1 initially -> RBP - 8, as intended)
+  (* offset stores the next _available_ stack slot (ex: offset 0 initially -> 0, first arg's idx)
      env_tag stores which sub-map in env to add to (only updated when we enter a lambda) *)
   let rec help_aexpr
       (exp : (tag * StringSet.t) aexpr)
       (offset : int)
-      (env : arg envt tag_envt)
-      (env_tag : tag) : arg envt tag_envt =
+      (env : int envt tag_envt)
+      (env_tag : tag) : int envt tag_envt =
     match exp with
     | ALet (id, bound, body, _) ->
         (* get the environment for the bound variable, which may use the current
            stack slot since we have not stored id in it yet *)
         let env_after_bound = help_cexpr bound offset env env_tag in
-        let env_with_id =
-          add_to_env env_tag id (RegOffset (~-word_size * offset, RBP)) env_after_bound
-        in
+        let env_with_id = add_to_env env_tag id offset env_after_bound in
         help_aexpr body (offset + 1) env_with_id env_tag
     | ASeq (c, a, _) ->
         let env_after_c = help_cexpr c offset env env_tag in
@@ -792,8 +791,7 @@ let naive_stack_allocation (prog : (tag * StringSet.t) aprogram) :
         (* first, reserve stack space for everything being bound *)
         let env_with_binds, next_usable_offset =
           List.fold_left
-            (fun (env, off) (name, _) ->
-              (add_to_env env_tag name (RegOffset (~-word_size * off, RBP)) env, off + 1) )
+            (fun (env, off) (name, _) -> (add_to_env env_tag name off env, off + 1))
             (env, offset) binds
         in
         (* then process each thing being bound. the bound names are in scope, so we start with
@@ -809,8 +807,8 @@ let naive_stack_allocation (prog : (tag * StringSet.t) aprogram) :
   and help_cexpr
       (cexp : (tag * StringSet.t) cexpr)
       (offset : int)
-      (env : arg envt tag_envt)
-      (env_tag : tag) : arg envt tag_envt =
+      (env : int envt tag_envt)
+      (env_tag : tag) : int envt tag_envt =
     match cexp with
     | CIf (_, t, e, _) ->
         let env_then = help_aexpr t offset env env_tag in
@@ -824,14 +822,13 @@ let naive_stack_allocation (prog : (tag * StringSet.t) aprogram) :
         let env_with_args, next_arg_offset =
           List.fold_left
             (fun (env, off) name ->
-              (* first arg will start at RSP - 16 because RSP - 8 is reserved for the function itself *)
-              (add_to_env tag name (RegOffset (~-word_size * off, RBP)) env, off + 1) )
-            (env, 2) args
+              (* first arg will start at 1, because slot 0 is reserved for the function itself *)
+              (add_to_env tag name off env, off + 1) )
+            (env, 1) args
         in
         let env_with_closure, next_offset =
           List.fold_left
-            (fun (env, off) free_name ->
-              (add_to_env tag free_name (RegOffset (~-word_size * off, RBP)) env, off + 1) )
+            (fun (env, off) free_name -> (add_to_env tag free_name off env, off + 1))
             (env_with_args, next_arg_offset)
             (* we will end up unpacking everything that was free
                (note that we have to wrap cexp in ACExpr for the signature of free_vars) *)
@@ -845,11 +842,25 @@ let naive_stack_allocation (prog : (tag * StringSet.t) aprogram) :
   in
   match prog with
   | AProgram (body, (tag, _)) ->
-      (* our body has zero arguments currently, so we start offset at 1
+      (* our body has zero arguments currently, so we start offset at 0
          we also start at the outermost tag as the "general environment"
          not specific to any function *)
-      let body_env = help_aexpr body 1 [] tag in
+      let body_env = help_aexpr body 0 [] tag in
       (prog, body_env)
+;;
+
+let naive_stack_allocation (prog : (tag * StringSet.t) aprogram) :
+    (tag * StringSet.t) aprogram * arg envt tag_envt =
+  let prog, slot_env = stack_slot_allocation prog in
+  let stack_env =
+    List.map
+      (fun (tag, tenvt) ->
+        ( tag,
+          List.map (fun (name, offset) -> (name, RegOffset (-word_size * (offset + 1), RBP))) tenvt
+        ) )
+      slot_env
+  in
+  (prog, stack_env)
 ;;
 
 (* computes the interference graph of a given expression, given the everything

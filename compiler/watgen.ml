@@ -30,4 +30,5 @@ let compile_to_wat_string
   |> add_phase anfed (fun p -> atag (anf p))
   |> add_phase cached free_vars_cache
   |> add_phase locate_bindings (pick_alloc_strategy alloc_strat)
-  |> add_phase result compile_wasm_prog;;
+  |> add_phase result compile_wasm_prog
+;;

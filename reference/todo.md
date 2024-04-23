@@ -6,7 +6,7 @@
 - [x] Check out how to pass in arguments to `node` test harness,
       look at `runner` to see how they do it
 
-- [ ] Update naive_stack_allocation to first return indices, then map them to slots
+- [x] Update naive_stack_allocation to first return indices, then map them to slots
 - [ ] Code generation (AKA the hard part...): test as you go!
   - We probably want to make no builtins helper easier to use in tests
   - Walk through adder -> boa -> cobra -> etc
