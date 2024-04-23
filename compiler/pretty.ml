@@ -260,12 +260,10 @@ let print_list fmt p_item items p_sep =
       List.iter (fun item -> p_sep fmt; p_item fmt item) rest
 ;;
 
-let print_nested_env e =
+let print_nested_env printer e =
   let string_of_sub_env sub_env =
     List.fold_left ( ^ ) ""
-      (intersperse
-         (List.map (fun (name, arg) -> name ^ " |-> " ^ arg_to_asm arg) sub_env)
-         "\n\t\t " )
+      (intersperse (List.map (fun (name, arg) -> name ^ " |-> " ^ printer arg) sub_env) "\n\t\t ")
   in
   "Env:\n\t"
   ^ List.fold_left ( ^ ) ""

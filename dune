@@ -4,6 +4,7 @@
   asmgen
   assembly
   compile
+  constants
   errors
   exprs
   graph
@@ -37,7 +38,7 @@
 
 (library
  (name tester)
- (modules helpers integration unit)
+ (modules helpers integration unit temp)
  (libraries ounit2 extlib str wutu)
  (wrapped false))
 

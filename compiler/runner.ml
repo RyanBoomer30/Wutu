@@ -216,7 +216,7 @@ let run ?(target = X86_64) p out runner no_builtins args std_input alloc_strat =
 
 let run_anf p out runner args std_input =
   let maybe_asm_string =
-    try Ok (compile_prog p) with
+    try Ok (Asmgen.compile_prog p) with
     | Failure s -> Error [Failure ("Compile error: " ^ s)]
     | err -> Error [Failure ("Unexpected compile error: " ^ Printexc.to_string err)]
   in

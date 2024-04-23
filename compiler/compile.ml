@@ -4,32 +4,13 @@ open Exprs
 open Assembly
 open Errors
 open Graph
+open Constants
 
 (* Documentation can be found at https://v2.ocaml.org/api/Set.S.html *)
 module StringSet = Set.Make (String)
 
 (* Documentation can be found at https://v2.ocaml.org/api/Map.S.html *)
 module StringMap = Map.Make (String)
-
-(* SNAKE CONSTANTS *)
-
-let max_snake_val = Int64.div Int64.max_int 2L
-
-let min_snake_val = Int64.div Int64.min_int 2L
-
-(* ASM CONSTANTS *)
-
-let first_six_args_registers = [RDI; RSI; RDX; RCX; R8; R9]
-
-let unused_registers = [R12; R13; R14; RBX]
-
-let allocatable_registers = unused_registers @ first_six_args_registers
-
-let callee_saved_registers = [RBX; R12; R13; R14; R15]
-
-let caller_saved_registers = R10 :: R11 :: first_six_args_registers
-
-(* You may find some of these helpers useful *)
 
 (* [f(n); f(n-1); ... f(1)] *)
 let rec build_list_rev f n =

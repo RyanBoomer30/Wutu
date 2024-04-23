@@ -1,5 +1,6 @@
 open Printf
 open Errors
+open Assembly
 
 type val_type =
   | I64
@@ -23,6 +24,7 @@ type winstr =
      we never get close to using the missing bit *)
   | WI32Const of int
   | WI64Const of int64
+  | WI64HexConst of arg (* arg is specifically a HexConst, for compatability purposes *)
   (* Globals (all of which are named here) *)
   | WGlobalGet of string
   | WGlobalSet of string
@@ -116,7 +118,7 @@ let string_of_func_type (params, result) =
   sprintf "%s(result %s)" param_str (string_of_val_type result)
 ;;
 
-let string_of_func_type_top ft = sprintf "(type (func %s))" (string_of_func_type ft)
+let string_of_func_type_top ft = sprintf "  (type (func %s))" (string_of_func_type ft)
 
 let rec string_of_winstr winst =
   match winst with
@@ -124,6 +126,8 @@ let rec string_of_winstr winst =
   | WCommentInstr (inst, s) -> string_of_winstr inst ^ "  ;; " ^ s
   | WI32Const i -> sprintf "    i32.const %+d" i
   | WI64Const i -> sprintf "    i64.const %+Ld" i
+  | WI64HexConst (HexConst n) -> sprintf "    i64.const 0x%Lx" n
+  | WI64HexConst _ -> raise (InternalCompilerError "WI64HexConst only supports HexConst args")
   | WGlobalGet s -> sprintf "    global.get %s" s
   | WGlobalSet s -> sprintf "    global.set %s" s
   | WCall s -> sprintf "    call $%s" s
@@ -164,7 +168,7 @@ let string_of_importable impbl =
 ;;
 
 let string_of_import (s1, s2, impbl) =
-  sprintf "  (import %s %s %s)" s1 s2 (string_of_importable impbl)
+  sprintf "  (import \"%s\" \"%s\" %s)" s1 s2 (string_of_importable impbl)
 ;;
 
 let string_of_global (name, gt, init) =
@@ -173,11 +177,11 @@ let string_of_global (name, gt, init) =
 ;;
 
 let string_of_elem_segment (offset, indices) =
-  sprintf "  (elem (i32.const %+d) %s)" offset (String.concat " " (List.map string_of_int indices))
+  sprintf "  (elem (i32.const %d) %s)" offset (String.concat " " (List.map string_of_int indices))
 ;;
 
 let rec replicate x i =
-  if i < 0 then
+  if i <= 0 then
     []
   else
     x :: replicate x (i - 1)
@@ -191,16 +195,16 @@ let string_of_wfunc (name, export, arity, num_locals, winstrs) =
   in
   let expstring =
     match export with
-    | Some s -> sprintf "(export %s) " s
+    | Some s -> sprintf "(export \"%s\") " s
     | None -> ""
   in
-  sprintf "(func%s %s(type %d)\n    (local%s)\n%s\n  )" namestr expstring arity
+  sprintf "  (func%s %s(type %d)\n    (local%s)\n%s\n  )" namestr expstring arity
     (String.concat "" (replicate " i64" num_locals))
     (String.concat "\n" (List.map string_of_winstr winstrs))
 ;;
 
 let watstring_of_wmodule {imports= imps; globals= globs; funtypes= fts; elems= elms; funcs= wfuns} =
-  sprintf "(module\n%s\n%s\n%s\n%s\n%s)"
+  sprintf "(module\n%s\n%s\n%s\n%s\n\n%s\n)"
     (String.concat "\n" (List.map string_of_import imps))
     (String.concat "\n" (List.map string_of_global globs))
     (String.concat "\n" (List.map string_of_func_type_top fts))

@@ -1,3 +1,5 @@
+const runtime = require('../compiler/runtime');
+
 const fs = require('node:fs');
 
 if (process.argv.length !== 3) {
@@ -7,11 +9,6 @@ if (process.argv.length !== 3) {
 
 const wasmBuffer = fs.readFileSync(process.argv[2]);
 
-const importObject = {
-  imports: { imported_func: (arg) => console.log((arg >> 1n).toString()) },
-};
-
-WebAssembly.instantiate(wasmBuffer, importObject).then(obj => {
-  const { exported_func } = obj.instance.exports;
-  exported_func();
+WebAssembly.instantiate(wasmBuffer, runtime.importObject).then(obj => {
+  runtime.print(obj.instance.exports.our_code_starts_here());
 });

@@ -3,6 +3,7 @@ open Exprs
 open Errors
 open Pretty
 open Assembly
+open Wast
 module StringSet = Set.Make (String)
 
 (* There are lots of ways to work with pipelines of functions that "can fail
@@ -25,6 +26,8 @@ type phase =
   | ANFed of tag aprogram
   | Cached of (tag * StringSet.t) aprogram
   | Located of (tag * StringSet.t) aprogram * arg envt tag_envt
+  | IdxLocated of (tag * StringSet.t) aprogram * int envt tag_envt
+  | WModule of wmodule
   | Result of string
 
 (* These functions simply apply a phase constructor, because OCaml
@@ -46,6 +49,10 @@ let anfed p = ANFed p
 let cached p = Cached p
 
 let locate_bindings (p, e) = Located (p, e)
+
+let locate_indices (p, e) = IdxLocated (p, e)
+
+let wmodule w = WModule w
 
 let result s = Result s
 
@@ -114,6 +121,8 @@ let print_trace (trace : phase list) : string list =
     | ANFed _ -> "ANF'ed"
     | Cached _ -> "Cached"
     | Located _ -> "Located"
+    | IdxLocated _ -> "Indices Located"
+    | WModule _ -> "Wasm Module"
     | Result _ -> "Result"
   in
   let string_of_phase p =
@@ -133,7 +142,13 @@ let print_trace (trace : phase list) : string list =
             (intersperse (List.map (fun (name, arg) -> name ^ "=>" ^ arg_to_asm arg) e) "\n\t") *)
     | Located (p, e) ->
         string_of_aprogram_with 1000 (fun (tag, _) -> sprintf "@%d" tag) p
-        ^ "\n" ^ print_nested_env e
+        ^ "\n" ^ print_nested_env arg_to_asm e
+    | IdxLocated (p, e) ->
+        string_of_aprogram_with 1000 (fun (tag, _) -> sprintf "@%d" tag) p
+        ^ "\n" ^ print_nested_env string_of_int e
+    (* technically this will print out twice when -t is enabled,
+       which is also what Cached is doing, so it's probably okay *)
+    | WModule w -> watstring_of_wmodule w
     | Result s -> s
   in
   List.mapi

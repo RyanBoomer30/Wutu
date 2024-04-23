@@ -14,6 +14,7 @@
 - [ ] Runtime functions
   - First `print`, since that gets called (and basic runtime), then `equal`
     - Maybe for `print` we can try to do a conversion somehow? Starting with numbers is fine
+  - [ ] UPDATE `compile_prog` to have the other stuff in there, like table and mem and globals
 - [ ] GC
   - [ ] Interactions with tail calls
 

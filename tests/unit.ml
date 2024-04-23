@@ -808,12 +808,12 @@ let fv_suite =
 
 (* for ease of writing tests, does not rename: SO be careful about names *)
 let t_nsa =
-  t_parse print_nested_env (fun p ->
+  t_parse (print_nested_env arg_to_asm) (fun p ->
       snd (naive_stack_allocation (free_vars_cache (atag (anf (tag (desugar p)))))) )
 ;;
 
 let t_nsa_no =
-  t_parse print_nested_env (fun p ->
+  t_parse (print_nested_env arg_to_asm) (fun p ->
       snd
         (naive_stack_allocation (free_vars_cache (atag (anf (tag (desugar ~no_builtins:true p)))))) )
 ;;
@@ -973,7 +973,7 @@ let color_suite =
 ;;
 
 let t_reg bi =
-  t_parse print_nested_env (fun p ->
+  t_parse (print_nested_env arg_to_asm) (fun p ->
       snd (register_allocation (free_vars_cache (atag (anf (tag (desugar ~no_builtins:bi p)))))) )
 ;;
 
