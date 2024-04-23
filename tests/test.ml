@@ -3,7 +3,7 @@ open OUnit2
 open Runner
 open Unit
 
-let () = run_test_tt_main Temp.prim1_suite
+let () = run_test_tt_main ("temp_tests" >::: [Temp.prim1_suite; Temp.prim2_suite])
 
 (* let () =
      run_test_tt_main

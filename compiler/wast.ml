@@ -35,10 +35,8 @@ type winstr =
   | WIfThen of winstr list (* convenience *)
   | WIfThenElse of func_type * winstr list * winstr list
   (* Locals *)
-  | WLocalGetName of string
-  | WLocalSetName of string
-  | WLocalIdxGet of int
-  | WLocalIdxSet of int
+  | WLocalGet of int
+  | WLocalSet of int
   (* Memory *)
   | WStore of int (* offset, also always storing i64 *)
   | WLoad of int (* offset, also always loading i64 *)
@@ -57,6 +55,8 @@ type winstr =
   (* Conversions: *)
   | WI64ExtendI32
   | WI32WrapI64
+  (* Drop *)
+  | WDrop
 
 type importable =
   (* initial size of function table *)
@@ -134,17 +134,16 @@ let rec string_of_winstr winst =
   | WCallIndirect d -> sprintf "    call_indirect %d" d
   | WTailCall i -> sprintf "    return_call_indirect %d" i
   | WIfThen ws ->
-      sprintf "    (if\n      (then\n%s\n      )\n    )"
+      sprintf "    (if\n      (then\n        %s\n      )\n    )"
         (String.concat "\n    " (List.map string_of_winstr ws))
   | WIfThenElse (ft, ws1, ws2) ->
-      sprintf "    (if %s\n      (then\n%s\n      )\n      (else\n%s\n      )\n    )"
+      sprintf
+        "    (if %s\n      (then\n        %s\n      )\n      (else\n        %s\n      )\n    )"
         (string_of_func_type ft)
         (String.concat "\n    " (List.map string_of_winstr ws1))
         (String.concat "\n    " (List.map string_of_winstr ws2))
-  | WLocalGetName s -> sprintf "    local.get $%s" s
-  | WLocalSetName s -> sprintf "    local.set $%s" s
-  | WLocalIdxGet i -> sprintf "    local.get %d" i
-  | WLocalIdxSet i -> sprintf "    local.set %d" i
+  | WLocalGet i -> sprintf "    local.get %d" i
+  | WLocalSet i -> sprintf "    local.set %d" i
   | WStore off -> sprintf "    i64.store offset=%d" off
   | WLoad off -> sprintf "    i64.load offset=%d" off
   | WAdd vt -> sprintf "    %s.add" (string_of_val_type vt)
@@ -157,6 +156,7 @@ let rec string_of_winstr winst =
   | WEq -> "    i64.eq"
   | WI64ExtendI32 -> "    i64.extend_i32_s"
   | WI32WrapI64 -> "    i32.wrap_i64"
+  | WDrop -> "    drop"
 ;;
 
 let string_of_importable impbl =

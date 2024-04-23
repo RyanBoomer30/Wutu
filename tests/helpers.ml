@@ -52,9 +52,12 @@ let tvgc name heap_size program input expected =
   >:: test_run_valgrind ~args:[string_of_int heap_size] ~std_input:input Naive program name expected
 ;;
 
-let terr name program input expected =
-  name >:: test_err ~args:[] ~std_input:input ~target alloc_strategy program name expected
+let terr ?(no_builtins = false) name program input expected =
+  name
+  >:: test_err ~no_builtins ~args:[] ~std_input:input ~target alloc_strategy program name expected
 ;;
+
+let terrnb = terr ~no_builtins:true
 
 let tgcerr ?(no_builtins = false) name heap_size program input expected =
   name

@@ -8,12 +8,7 @@
 
 - [x] Update naive_stack_allocation to first return indices, then map them to slots
 - [ ] Code generation (AKA the hard part...): test as you go!
-  - We probably want to make no builtins helper easier to use in tests
-  - Walk through adder -> boa -> cobra -> etc
-  - Might have to add `I64ConstHex` or something: check `wat` spec for what's supported
 - [ ] Runtime functions
-  - First `print`, since that gets called (and basic runtime), then `equal`
-    - Maybe for `print` we can try to do a conversion somehow? Starting with numbers is fine
   - [ ] UPDATE `compile_prog` to have the other stuff in there, like table and mem and globals
 - [ ] GC
   - [ ] Interactions with tail calls
