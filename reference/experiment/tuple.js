@@ -1,9 +1,9 @@
 const memory = new WebAssembly.Memory({
-  initial: 10,
+  initial: 1,
 });
 
 const importObject = {
-  js: { mem: memory }
+  runtime: { memory: memory }
 };
 
 const fs = require('node:fs');
@@ -11,7 +11,7 @@ const fs = require('node:fs');
 const wasmBuffer = fs.readFileSync('tuple.wasm');
 
 WebAssembly.instantiate(wasmBuffer, importObject).then(obj => {
-  let tagged_ptr = obj.instance.exports.exported_func();
+  let tagged_ptr = obj.instance.exports.our_code_starts_here();
   
   // signed? i'm assuming
   const mem = new BigInt64Array(memory.buffer);

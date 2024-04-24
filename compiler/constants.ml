@@ -35,6 +35,8 @@ type err = int64 * string
 
 let err_label = snd
 
+let err_code = fst
+
 let err_label_arg t = Label (snd t)
 
 let err_COMP_NOT_NUM = (1L, "err_comp_not_num")

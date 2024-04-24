@@ -8,8 +8,16 @@
 
 - [x] Update naive_stack_allocation to first return indices, then map them to slots
 - [ ] Code generation (AKA the hard part...): test as you go!
+  - [ ] Lambda
+  - [ ] LetRec
+  - [ ] EApp
 - [ ] Runtime functions
-  - [ ] UPDATE `compile_prog` to have the other stuff in there, like table and mem and globals
+  - [ ] Printing tuples
+  - [ ] Equal, input
+  - [ ] Other interesting stuff
+- [ ] FIGURE OUT: currently, `nil` doesn't work the way we want it to, since 0 is a valid
+      slot in the linear memory. We can offset by 16, or the shadow stack will do that for us
+      (although I am not optimistic about being able to get to GC...)
 - [ ] GC
   - [ ] Interactions with tail calls
 

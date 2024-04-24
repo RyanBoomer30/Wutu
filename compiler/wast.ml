@@ -44,9 +44,10 @@ type winstr =
   (* Numeric: *)
   | WAdd of val_type
   | WSub of val_type
-  (* | WMul *)
+  | WMul of val_type
   (* for now, these only operate on i64, since nothing more is necessary *)
   | WAnd
+  | WXor
   | WGt
   | WGe
   | WLt
@@ -128,13 +129,13 @@ let rec string_of_winstr winst =
   | WI64Const i -> sprintf "    i64.const %+Ld" i
   | WI64HexConst (HexConst n) -> sprintf "    i64.const 0x%Lx" n
   | WI64HexConst _ -> raise (InternalCompilerError "WI64HexConst only supports HexConst args")
-  | WGlobalGet s -> sprintf "    global.get %s" s
-  | WGlobalSet s -> sprintf "    global.set %s" s
+  | WGlobalGet s -> sprintf "    global.get $%s" s
+  | WGlobalSet s -> sprintf "    global.set $%s" s
   | WCall s -> sprintf "    call $%s" s
   | WCallIndirect d -> sprintf "    call_indirect %d" d
   | WTailCall i -> sprintf "    return_call_indirect %d" i
   | WIfThen ws ->
-      sprintf "    (if\n      (then\n        %s\n      )\n    )"
+      sprintf "    (if\n      (then\n    %s\n      )\n    )"
         (String.concat "\n    " (List.map string_of_winstr ws))
   | WIfThenElse (ft, ws1, ws2) ->
       sprintf
@@ -148,11 +149,13 @@ let rec string_of_winstr winst =
   | WLoad off -> sprintf "    i64.load offset=%d" off
   | WAdd vt -> sprintf "    %s.add" (string_of_val_type vt)
   | WSub vt -> sprintf "    %s.sub" (string_of_val_type vt)
+  | WMul vt -> sprintf "    %s.mul" (string_of_val_type vt)
   | WAnd -> "    i64.and"
-  | WGt -> "    i64.gt"
-  | WGe -> "    i64.ge"
-  | WLt -> "    i64.lt"
-  | WLe -> "    i64.le"
+  | WXor -> "    i64.xor"
+  | WGt -> "    i64.gt_s"
+  | WGe -> "    i64.ge_s"
+  | WLt -> "    i64.lt_s"
+  | WLe -> "    i64.le_s"
   | WEq -> "    i64.eq"
   | WI64ExtendI32 -> "    i64.extend_i32_s"
   | WI32WrapI64 -> "    i32.wrap_i64"
