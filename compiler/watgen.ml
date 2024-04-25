@@ -5,6 +5,7 @@ open Errors
 open Constants
 open Printf
 open Wast
+open Assembly
 
 (* names of safe arithmetic operations in the JS runtime that can handle overflow.
    we don't have to wrap these up, for the same reason why we don't wrap up normal adds *)
@@ -27,6 +28,12 @@ let unwrapped_fun_env =
 
 let deepest_index_stack env = List.fold_left max ~-1 (List.map snd env)
 
+let closure_tag_int : int =
+  match closure_tag with
+  | HexConst x -> Int64.to_int x
+  | _ -> raise (InternalCompilerError "Closure tag is necessarily a HexConst")
+;;
+
 (* we accumulate the wfuns seen so far in order to do lambda lifting
    we need to have them in the proper order, to fill in funtbl idx in closures
    (which we store as funtbl_ptr * 2, to prevent our BFS GC from
@@ -47,7 +54,12 @@ let rec compile_aexpr
       let wfuns, right_compiled = compile_aexpr a env_tag env wfuns_with_left is_tail in
       (wfuns, left_compiled @ [WDrop] @ right_compiled)
   | ACExpr cexpr -> compile_cexpr cexpr env_tag env wfuns_so_far is_tail
-  | ALetRec (binds, body, _) -> raise (NotYetImplemented "Unimplemented")
+  | ALetRec (binds, body, _) ->
+      (* if we extended with GC, we would have to be careful not to trigger a GC
+         while tagged pointers to the allocated but not yet populated closures are
+         on our stack.
+         they temporarily point to part of the linear memory which may be filled with junk *)
+      raise (NotYetImplemented "Unimplemented")
 
 and compile_cexpr
     (e : (tag * StringSet.t) cexpr)
@@ -84,7 +96,9 @@ and compile_cexpr
       (* safe operations from runtime do tag checks! *)
       | Add1 -> (wfuns_so_far, [imm; WI64Const (err_code err_ARITH_NOT_NUM); WCall safe_add])
       | Sub1 -> (wfuns_so_far, [imm; WI64Const (err_code err_ARITH_NOT_NUM); WCall safe_sub])
-      | Not -> (wfuns_so_far, load_bool imm (err_code err_LOGIC_NOT_BOOL) @ [WI64HexConst bool_mask; WXor])
+      | Not ->
+          ( wfuns_so_far,
+            load_bool imm (err_code err_LOGIC_NOT_BOOL) @ [WI64HexConst bool_mask; WXor] )
       | IsBool -> (wfuns_so_far, imm :: make_is bool_tag bool_tag_mask)
       | IsNum -> (wfuns_so_far, imm :: make_is num_tag num_tag_mask)
       | IsTuple -> (wfuns_so_far, imm :: make_is tuple_tag tuple_tag_mask)
@@ -116,7 +130,36 @@ and compile_cexpr
       | And -> raise (InternalCompilerError "Error: missed desugar of &&")
       | Or -> raise (InternalCompilerError "Error: missed desugar of ||")
       | CheckSize -> raise (NotYetImplemented "Unimplemented") )
-  | CApp (func, args, ct, (tag, _)) -> raise (NotYetImplemented "Unimplemented")
+  | CApp (func, args, ct, _) -> (
+    match ct with
+    | Snake ->
+        let func_imm = compile_imm func env_tag env in
+        let arg_imms = List.map (fun arg -> compile_imm arg env_tag env) args in
+        (* if (arity != #args + 1) then explode otherwise continue  *)
+        let tag_arity_check = load_closure func_imm (err_code err_CALL_NOT_CLOSURE) @ [
+          WI32WrapI64;
+          WLoad 0;
+          (* if arity (stored as SNAKEVAL, without including closure)
+             is not equal to the # arguments we supply, then error *)
+          WI64Const (Int64.of_int (2 * (List.length args)));
+          WNe;
+          WIfThen [func_imm; WI64Const (err_code err_CALL_ARITY_ERR); WCall error_fun; WDrop]
+        ] in
+        let call =
+          [ func_imm;
+            WI32WrapI64;
+            WLoad (word_size - closure_tag_int);
+            WI64Const 1L;
+            WShr I64;
+            WI32WrapI64;
+            (* we push on 1 + length(args) arguments, so that's how we annotate our call
+               that way our wasm binary typechecks *)
+            WCallIndirect (1 + List.length args) ]
+        in
+        (wfuns_so_far, tag_arity_check @ (func_imm :: arg_imms) @ call)
+    | Native name -> raise (NotYetImplemented "TODO")
+    | Prim -> raise (InternalCompilerError "Prim call type not supported")
+    | Unknown -> raise (InternalCompilerError "Unknown call type") )
   | CTuple (elems, _) ->
       let arity = List.length elems in
       let size_unpadded = arity + 1 in
@@ -128,13 +171,12 @@ and compile_cexpr
         List.flatten
           (List.mapi
              (fun i imm ->
-               [WGlobalGet "r15"; compile_imm imm env_tag env; WStore ((i + 1) * Assembly.word_size)]
-               )
+               [WGlobalGet "r15"; compile_imm imm env_tag env; WStore ((i + 1) * word_size)] )
              elems )
       in
       let maybe_pad_heap =
         if size_unpadded mod 2 = 1 then
-          [WGlobalGet "r15"; WI64Const 0L; WStore (size_unpadded * Assembly.word_size)]
+          [WGlobalGet "r15"; WI64Const 0L; WStore (size_unpadded * word_size)]
         else
           []
       in
@@ -143,7 +185,7 @@ and compile_cexpr
       let push_ret_value = [WGlobalGet "r15"; WI64ExtendI32; WI64HexConst tuple_tag; WAdd I64] in
       (* without touching it, update r15 *)
       let update_r15 =
-        [WGlobalGet "r15"; WI32Const (size_padded * Assembly.word_size); WAdd I32; WGlobalSet "r15"]
+        [WGlobalGet "r15"; WI32Const (size_padded * word_size); WAdd I32; WGlobalSet "r15"]
       in
       (wfuns_so_far, write_arity @ load_elems @ maybe_pad_heap @ push_ret_value @ update_r15)
   | CGetItem (tup, idx, _) ->
@@ -167,12 +209,12 @@ and compile_cexpr
           idx_imm;
           (* we multiply by word_size / 2 because we already
              multiplied by 2 (the index is a SNAKEVAL) *)
-          WI64Const (Int64.of_int (Assembly.word_size / 2));
+          WI64Const (Int64.of_int (word_size / 2));
           WMul I64;
           WAdd I64;
           WI32WrapI64;
           (* we skip over the first word, since that stores the tuple *)
-          WLoad Assembly.word_size ]
+          WLoad word_size ]
       in
       (wfuns_so_far, load_arity @ check_idx_too_big @ check_idx_too_small @ access_elem)
   | CSetItem (tup, idx, new_val, _) ->
@@ -198,13 +240,13 @@ and compile_cexpr
           idx_imm;
           (* we multiply by word_size / 2 because we already
              multiplied by 2 (the index is a SNAKEVAL) *)
-          WI64Const (Int64.of_int (Assembly.word_size / 2));
+          WI64Const (Int64.of_int (word_size / 2));
           WMul I64;
           WAdd I64;
           WI32WrapI64;
           (* we skip over the first word, since that stores the tuple *)
           val_imm;
-          WStore Assembly.word_size;
+          WStore word_size;
           (* returns the new value as the result *)
           val_imm ]
       in
@@ -212,7 +254,27 @@ and compile_cexpr
   | CImmExpr e ->
       (* no functions reachable from immexprs *)
       (wfuns_so_far, [compile_imm e env_tag env])
-  | CLambda (args, body, (lam_tag, fvs)) -> raise (NotYetImplemented "Unimplemented")
+  | CLambda (args, body, (lam_tag, fvs)) ->
+      let free_vars = StringSet.elements fvs in
+      let arity = List.length args in
+      (* lift the lambda up, accumulating onto wfuns_so_far *)
+      let wfuns = compile_wfunc body lam_tag arity free_vars wfuns_so_far env in
+      let size_unpadded = List.length free_vars + 3 in
+      let size_padded = size_unpadded + (size_unpadded mod 2) in
+      let populate_instrs =
+        (* this function is the _last_ item in wfuns, so the funtbl_ptr
+           for this closure is the index of that final item *)
+        populate_closure free_vars (WGlobalGet "r15") false arity
+          (List.length wfuns - 1)
+          (try find env env_tag with InternalCompilerError _ -> [])
+      in
+      (* we will place the tagged pointer into the linear memory on the stack, then... *)
+      let push_ret_value = [WGlobalGet "r15"; WI64ExtendI32; WI64HexConst closure_tag; WAdd I64] in
+      (* without touching it, update r15 *)
+      let update_r15 =
+        [WGlobalGet "r15"; WI32Const (size_padded * word_size); WAdd I32; WGlobalSet "r15"]
+      in
+      (wfuns, populate_instrs @ push_ret_value @ update_r15)
 
 and compile_imm e (env_tag : tag) env : winstr =
   match e with
@@ -223,6 +285,77 @@ and compile_imm e (env_tag : tag) env : winstr =
   | ImmBool (false, _) -> WI64HexConst const_false
   | ImmId (x, _) -> WLocalGet (find (find env env_tag) x)
   | ImmNil _ -> WI64HexConst const_nil
+
+(* free_vars are the free variables of the function itself, not its body
+   we compile the body and wrap it up in a wfunc, accumulating onto funs_so_far
+   here, the arity does NOT include the closure itself, but the arity
+   of the resulting wfunc DOES *)
+and compile_wfunc body lam_tag arity free_vars funs_so_far full_env : wfunc list =
+  let funs_with_body, body_instrs = compile_aexpr body lam_tag full_env funs_so_far true in
+  let lam_env = try find full_env lam_tag with _ -> [] in
+  let wfunc_arity = arity + 1 in
+  (* if lam_env is empty (AKA no locals or args), then this will be -1
+     note that if the deepest local is n, then we have n + 1 slots occupied *)
+  let deepest_stack = deepest_index_stack lam_env in
+  (* if no locals or args, then deepest_stack is -1, so we use max 0 to get 0 locals
+     otherwise, we morally have (deepest_stack + 1 - wfunc arity).
+     of the n + 1 slots occupied, 1 of them is the closure, and `arity` of them are
+     the args, so we return the difference *)
+  let num_locals = max 0 (deepest_stack - arity) in
+  let load_instrs =
+    List.flatten
+      (List.mapi
+         (fun i name ->
+           (* read each free variable out of memory and into a local *)
+           [ WLocalGet 0;
+             WI32WrapI64;
+             WLoad ((word_size * (3 + i)) - closure_tag_int);
+             WLocalSet (find lam_env name) ] )
+         free_vars )
+  in
+  let this_wfunc = (None, None, wfunc_arity, num_locals, load_instrs @ body_instrs) in
+  funs_with_body @ [this_wfunc]
+
+(* generates code to populate a closure with free variables / etc.
+   we start loading at `access`'s index into the linear memory, which may (not) be tagg./ed.
+   the passed cur_env tracks where free variables are to be found in order to load in *)
+and populate_closure free_vars access tagged arity funtbl_ptr cur_env : winstr list =
+  let num_free_vars = List.length free_vars in
+  (* adjusts an offset depending on whether our starting pointer is tagged or not
+     basically, we incorporate the untag into our static offset if applicable *)
+  let adjust offset =
+    if tagged then
+      offset - closure_tag_int
+    else
+      offset
+  in
+  let populate_arity =
+    (* we store 2 * arity as a SNAKEVAL like before, so it doesn't follow it as a pointer *)
+    [access; WI64Const (Int64.of_int (arity * 2)); WStore (adjust 0)]
+  in
+  let populate_funtbl_ptr =
+    (* we store 2 * funtbl_ptr for GC, so it doesn't follow it as a pointer *)
+    [access; WI64Const (Int64.of_int (funtbl_ptr * 2)); WStore (adjust word_size)]
+  in
+  let populate_num_fv =
+    (* same as above *)
+    [access; WI64Const (Int64.of_int (num_free_vars * 2)); WStore (adjust (word_size * 2))]
+  in
+  let populate_fv =
+    List.flatten
+      (List.mapi
+         (fun i name ->
+           [access; WLocalGet (find cur_env name); WStore (adjust (word_size * (3 + i)))] )
+         free_vars )
+  in
+  let size_unpadded = num_free_vars + 3 in
+  let maybe_populate_padding =
+    if size_unpadded mod 2 = 1 then
+      [access; WI64Const 0L; WStore (size_unpadded * word_size)]
+    else
+      []
+  in
+  populate_arity @ populate_funtbl_ptr @ populate_num_fv @ populate_fv @ maybe_populate_padding
 ;;
 
 let build_load_fun name mask tag to_untag : wfunc =
@@ -248,6 +381,7 @@ let build_load_fun name mask tag to_untag : wfunc =
 
 let compile_prog ((anfed : (tag * StringSet.t) aprogram), (env : int envt tag_envt)) : wmodule =
   let imported_funs = (* initial_fun_env @ *) unwrapped_fun_env in
+  let num_imports = List.length imported_funs in
   (* wrap up the imported runtime functions as imports *)
   let fun_imports =
     List.map
@@ -292,8 +426,9 @@ let compile_prog ((anfed : (tag * StringSet.t) aprogram), (env : int envt tag_en
       { imports;
         globals= [("r15", Mut I32, 0)];
         funtypes= type_list;
-        (* subtract one, since build_list starts at 1 *)
-        elems= (0, build_list (fun x -> x - 1) (List.length funs));
+        (* subtract one, since build_list starts at 1 
+           the table includes the imported functions, so we have to skip them over *)
+        elems= (0, build_list (fun x -> x - 1 + num_imports) (List.length funs));
         funcs= all_funs }
 ;;
 

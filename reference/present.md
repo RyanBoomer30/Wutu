@@ -73,3 +73,6 @@ GC:
       but this runs into shadow stack overflow (the whole thing we are trying to solve with TCE)
   - Generally takes lots of careful book-keeping (sneaking it into the right places, to make
     sure that tail calls stay tail calls, etc) and tracking tags carefully
+  - If we extended with GC, we would have to be careful not to trigger a GC
+    while tagged pointers to the allocated but not yet populated closures are
+    on our stack. They temporary point to part of the linear memory that are filled with junks

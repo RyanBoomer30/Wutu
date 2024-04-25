@@ -11,8 +11,7 @@ let () =
                 Temp.comparison_suite;
                 Temp.if_suite;
                 Temp.logic_suite; *)
-           Temp.tuple_suite;
-           Temp.errors ] )
+           Temp.funcs ] )
 ;;
 
 (* let () =

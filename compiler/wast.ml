@@ -45,6 +45,7 @@ type winstr =
   | WAdd of val_type
   | WSub of val_type
   | WMul of val_type
+  | WShr of val_type
   (* for now, these only operate on i64, since nothing more is necessary *)
   | WAnd
   | WXor
@@ -53,6 +54,7 @@ type winstr =
   | WLt
   | WLe
   | WEq
+  | WNe
   (* Conversions: *)
   | WI64ExtendI32
   | WI32WrapI64
@@ -121,6 +123,13 @@ let string_of_func_type (params, result) =
 
 let string_of_func_type_top ft = sprintf "  (type (func %s))" (string_of_func_type ft)
 
+let rec replicate x i =
+  if i <= 0 then
+    []
+  else
+    x :: replicate x (i - 1)
+;;
+
 let rec string_of_winstr winst =
   match winst with
   | WComment s -> "    ;; " ^ s
@@ -132,7 +141,9 @@ let rec string_of_winstr winst =
   | WGlobalGet s -> sprintf "    global.get $%s" s
   | WGlobalSet s -> sprintf "    global.set $%s" s
   | WCall s -> sprintf "    call $%s" s
-  | WCallIndirect d -> sprintf "    call_indirect %d" d
+  (* we have to spell these all out inline, to get the wat to consistently compile
+     if the user has errors in _their_ arities *)
+  | WCallIndirect d -> sprintf "    call_indirect %s" (string_of_func_type (replicate I64 d, I64))
   | WTailCall i -> sprintf "    return_call_indirect %d" i
   | WIfThen ws ->
       sprintf "    (if\n      (then\n    %s\n      )\n    )"
@@ -150,6 +161,7 @@ let rec string_of_winstr winst =
   | WAdd vt -> sprintf "    %s.add" (string_of_val_type vt)
   | WSub vt -> sprintf "    %s.sub" (string_of_val_type vt)
   | WMul vt -> sprintf "    %s.mul" (string_of_val_type vt)
+  | WShr vt -> sprintf "    %s.shr_s" (string_of_val_type vt)
   | WAnd -> "    i64.and"
   | WXor -> "    i64.xor"
   | WGt -> "    i64.gt_s"
@@ -157,6 +169,7 @@ let rec string_of_winstr winst =
   | WLt -> "    i64.lt_s"
   | WLe -> "    i64.le_s"
   | WEq -> "    i64.eq"
+  | WNe -> "    i64.ne"
   | WI64ExtendI32 -> "    i64.extend_i32_s"
   | WI32WrapI64 -> "    i32.wrap_i64"
   | WDrop -> "    drop"
@@ -181,13 +194,6 @@ let string_of_global (name, gt, init) =
 
 let string_of_elem_segment (offset, indices) =
   sprintf "  (elem (i32.const %d) %s)" offset (String.concat " " (List.map string_of_int indices))
-;;
-
-let rec replicate x i =
-  if i <= 0 then
-    []
-  else
-    x :: replicate x (i - 1)
 ;;
 
 let string_of_wfunc (name, export, arity, num_locals, winstrs) =

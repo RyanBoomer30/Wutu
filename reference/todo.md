@@ -8,9 +8,9 @@
 
 - [x] Update naive_stack_allocation to first return indices, then map them to slots
 - [ ] Code generation (AKA the hard part...): test as you go!
-  - [ ] Lambda
+  - [x] Lambda
+  - [x] EApp
   - [ ] LetRec
-  - [ ] EApp
 - [ ] Runtime functions
   - [ ] Printing tuples
   - [ ] Equal, input
@@ -18,8 +18,6 @@
 - [ ] FIGURE OUT: currently, `nil` doesn't work the way we want it to, since 0 is a valid
       slot in the linear memory. We can offset by 16, or the shadow stack will do that for us
       (although I am not optimistic about being able to get to GC...)
-- [ ] GC
-  - [ ] Interactions with tail calls
 
 - [ ] Figure out how to serve `.wasm` files
   1. We can write our `.wat` on the server, invoke `wat2wasm`, and then read the resulting `.wasm` file
