@@ -27,33 +27,33 @@ let unwrapped_fun_env =
 
 let deepest_index_stack env = List.fold_left max ~-1 (List.map snd env)
 
-(* size may be odd; we add the word of padding in here. size is in words
-   NOTE: this clobbers RAX and the argument registers, don't store anything in there *)
-let reserve size tag = raise (NotYetImplemented "Unimplemented")
-
+(* we accumulate the wfuns seen so far in order to do lambda lifting
+   we need to have them in the proper order, to fill in funtbl idx in closures
+   (which we store as funtbl_ptr * 2, to prevent our BFS GC from
+    thinking it is a tuple/closure/etc) *)
 let rec compile_aexpr
     (e : (tag * StringSet.t) aexpr)
     (env_tag : tag)
     (env : int envt tag_envt)
-    (num_args : int)
+    (wfuns_so_far : wfunc list)
     (is_tail : bool) : wfunc list * winstr list =
   match e with
   | ALet (id, bind, body, _) ->
-      let bind_funs, bind_instrs = compile_cexpr bind env_tag env num_args false in
-      let body_funs, body_instrs = compile_aexpr body env_tag env num_args is_tail in
-      (bind_funs @ body_funs, bind_instrs @ [WLocalSet (find (find env env_tag) id)] @ body_instrs)
+      let wfuns_with_bind, bind_instrs = compile_cexpr bind env_tag env wfuns_so_far false in
+      let wfuns, body_instrs = compile_aexpr body env_tag env wfuns_with_bind is_tail in
+      (wfuns, bind_instrs @ [WLocalSet (find (find env env_tag) id)] @ body_instrs)
   | ASeq (c, a, _) ->
-      let left_funs, left_compiled = compile_cexpr c env_tag env num_args false in
-      let right_funs, right_compiled = compile_aexpr a env_tag env num_args is_tail in
-      (left_funs @ right_funs, left_compiled @ [WDrop] @ right_compiled)
-  | ACExpr cexpr -> compile_cexpr cexpr env_tag env num_args is_tail
+      let wfuns_with_left, left_compiled = compile_cexpr c env_tag env wfuns_so_far false in
+      let wfuns, right_compiled = compile_aexpr a env_tag env wfuns_with_left is_tail in
+      (wfuns, left_compiled @ [WDrop] @ right_compiled)
+  | ACExpr cexpr -> compile_cexpr cexpr env_tag env wfuns_so_far is_tail
   | ALetRec (binds, body, _) -> raise (NotYetImplemented "Unimplemented")
 
 and compile_cexpr
     (e : (tag * StringSet.t) cexpr)
     (env_tag : tag)
     (env : int envt tag_envt)
-    (num_args : int)
+    (wfuns_so_far : wfunc list)
     (is_tail : bool) : wfunc list * winstr list =
   (* we define Wasm functions to do the untagging (which could actually be faster
      than inlining, bc JS engines be weird), which we call here.
@@ -64,10 +64,10 @@ and compile_cexpr
   let load_closure imm ec = [imm; WI64Const ec; WCall "load_closure"] in
   match e with
   | CIf (cond, thn, els, _) ->
-      let thn_funcs, thn_instrs = compile_aexpr thn env_tag env num_args is_tail in
-      let els_funcs, els_instrs = compile_aexpr els env_tag env num_args is_tail in
+      let wfuns_with_thn, thn_instrs = compile_aexpr thn env_tag env wfuns_so_far is_tail in
+      let wfuns, els_instrs = compile_aexpr els env_tag env wfuns_with_thn is_tail in
       let cond_imm = compile_imm cond env_tag env in
-      ( thn_funcs @ els_funcs,
+      ( wfuns,
         load_bool cond_imm (err_code err_IF_NOT_BOOL)
         @ [WI64HexConst const_true; WEq; WIfThenElse (([], I64), thn_instrs, els_instrs)] )
   | CPrim1 (op, e, _) -> (
@@ -82,12 +82,12 @@ and compile_cexpr
       in
       match op with
       (* safe operations from runtime do tag checks! *)
-      | Add1 -> ([], [imm; WI64Const (err_code err_ARITH_NOT_NUM); WCall safe_add])
-      | Sub1 -> ([], [imm; WI64Const (err_code err_ARITH_NOT_NUM); WCall safe_sub])
-      | Not -> ([], load_bool imm (err_code err_LOGIC_NOT_BOOL) @ [WI64HexConst bool_mask; WXor])
-      | IsBool -> ([], imm :: make_is bool_tag bool_tag_mask)
-      | IsNum -> ([], imm :: make_is num_tag num_tag_mask)
-      | IsTuple -> ([], imm :: make_is tuple_tag tuple_tag_mask)
+      | Add1 -> (wfuns_so_far, [imm; WI64Const (err_code err_ARITH_NOT_NUM); WCall safe_add])
+      | Sub1 -> (wfuns_so_far, [imm; WI64Const (err_code err_ARITH_NOT_NUM); WCall safe_sub])
+      | Not -> (wfuns_so_far, load_bool imm (err_code err_LOGIC_NOT_BOOL) @ [WI64HexConst bool_mask; WXor])
+      | IsBool -> (wfuns_so_far, imm :: make_is bool_tag bool_tag_mask)
+      | IsNum -> (wfuns_so_far, imm :: make_is num_tag num_tag_mask)
+      | IsTuple -> (wfuns_so_far, imm :: make_is tuple_tag tuple_tag_mask)
       | PrintStack -> raise (InternalCompilerError "Wasm compilation does not support PrintStack") )
   | CPrim2 (op, left, right, _) -> (
       let imm_left = compile_imm left env_tag env in
@@ -99,15 +99,15 @@ and compile_cexpr
         @ [comp; WIfThenElse (([], I64), [WI64HexConst const_true], [WI64HexConst const_false])]
       in
       match op with
-      | Plus -> ([], [imm_left; imm_right; WCall safe_add])
-      | Minus -> ([], [imm_left; imm_right; WCall safe_sub])
-      | Times -> ([], [imm_left; imm_right; WCall safe_mul])
-      | Greater -> ([], cmp_help WGt)
-      | GreaterEq -> ([], cmp_help WGe)
-      | Less -> ([], cmp_help WLt)
-      | LessEq -> ([], cmp_help WLe)
+      | Plus -> (wfuns_so_far, [imm_left; imm_right; WCall safe_add])
+      | Minus -> (wfuns_so_far, [imm_left; imm_right; WCall safe_sub])
+      | Times -> (wfuns_so_far, [imm_left; imm_right; WCall safe_mul])
+      | Greater -> (wfuns_so_far, cmp_help WGt)
+      | GreaterEq -> (wfuns_so_far, cmp_help WGe)
+      | Less -> (wfuns_so_far, cmp_help WLt)
+      | LessEq -> (wfuns_so_far, cmp_help WLe)
       | Eq ->
-          ( [],
+          ( wfuns_so_far,
             [ imm_left;
               imm_right;
               WEq;
@@ -145,7 +145,7 @@ and compile_cexpr
       let update_r15 =
         [WGlobalGet "r15"; WI32Const (size_padded * Assembly.word_size); WAdd I32; WGlobalSet "r15"]
       in
-      ([], write_arity @ load_elems @ maybe_pad_heap @ push_ret_value @ update_r15)
+      (wfuns_so_far, write_arity @ load_elems @ maybe_pad_heap @ push_ret_value @ update_r15)
   | CGetItem (tup, idx, _) ->
       let tup_imm = compile_imm tup env_tag env in
       let idx_imm = compile_imm idx env_tag env in
@@ -174,7 +174,7 @@ and compile_cexpr
           (* we skip over the first word, since that stores the tuple *)
           WLoad Assembly.word_size ]
       in
-      ([], load_arity @ check_idx_too_big @ check_idx_too_small @ access_elem)
+      (wfuns_so_far, load_arity @ check_idx_too_big @ check_idx_too_small @ access_elem)
   | CSetItem (tup, idx, new_val, _) ->
       let tup_imm = compile_imm tup env_tag env in
       let idx_imm = compile_imm idx env_tag env in
@@ -208,10 +208,10 @@ and compile_cexpr
           (* returns the new value as the result *)
           val_imm ]
       in
-      ([], load_arity @ check_idx_too_big @ check_idx_too_small @ load_elem)
+      (wfuns_so_far, load_arity @ check_idx_too_big @ check_idx_too_small @ load_elem)
   | CImmExpr e ->
       (* no functions reachable from immexprs *)
-      ([], [compile_imm e env_tag env])
+      (wfuns_so_far, [compile_imm e env_tag env])
   | CLambda (args, body, (lam_tag, fvs)) -> raise (NotYetImplemented "Unimplemented")
 
 and compile_imm e (env_tag : tag) env : winstr =
@@ -267,7 +267,8 @@ let compile_prog ((anfed : (tag * StringSet.t) aprogram), (env : int envt tag_en
   let load_funs = [load_num; load_bool; load_tuple; load_closure] in
   match anfed with
   | AProgram (body, (tag, _)) ->
-      let funs, ocsh_instrs = compile_aexpr body tag env 1 false in
+      (* start off with wfuns_so_far as empty *)
+      let funs, ocsh_instrs = compile_aexpr body tag env [] false in
       (* if the deepest local is 2, this means we have 3 locals in total
          if there are no locals, we will return -1 -> ocsh_fun will have 0 locals *)
       let deepest_local =
