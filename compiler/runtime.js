@@ -305,10 +305,10 @@ function big_bang(on_tick, render, value, should_world_end) {
   const should_world_end_ptr = closure_to_funptr(should_world_end, 1n, mem, "shouldWorldEnd");
   const shouldWorldEnd = table.get(should_world_end_ptr);
   
-  let unsigned_tr = BigInt.asUintN(64, tick_rate);
-  if ((unsigned_tr & NUM_TAG_MASK) !== NUM_TAG) {
-    throw new Error("Error: tick rate must be a number");
-  }
+  // let unsigned_tr = BigInt.asUintN(64, tick_rate);
+  // if ((unsigned_tr & NUM_TAG_MASK) !== NUM_TAG) {
+  //   throw new Error("Error: tick rate must be a number");
+  // }
 
   while (shouldWorldEnd(should_world_end, value) === BOOL_FALSE) {    
     display_val(renderVal(render, value));

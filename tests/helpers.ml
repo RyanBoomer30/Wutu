@@ -17,7 +17,7 @@ let alloc_strategy = Register
    This also doesn't change tr, tgc, tvg, etc: because those don't apply to Wasm *)
 let target = Wasm
 
-(* for now, everything but tr uses Naive register allocation
+(* for now, everything but tr uses Naive register allocationa
    we can revisit these test helpers to make them more flexible later *)
 
 let t ?(no_builtins = false) name program input expected =
