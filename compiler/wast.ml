@@ -30,8 +30,7 @@ type winstr =
   | WGlobalSet of string
   (* Control flow *)
   | WCall of string
-  | WCallIndirect of int (* arity *)
-  | WTailCall of int (* arity *)
+  | WCallIndirect of int * bool (* arity and whether or not it is in tail position *)
   | WIfThen of winstr list (* convenience *)
   | WIfThenElse of func_type * winstr list * winstr list
   (* Locals *)
@@ -144,8 +143,8 @@ let rec string_of_winstr winst =
   | WCall s -> sprintf "    call $%s" s
   (* we have to spell these all out inline, to get the wat to consistently compile
      if the user has errors in _their_ arities *)
-  | WCallIndirect d -> sprintf "    call_indirect %s" (string_of_func_type (replicate I64 d, I64))
-  | WTailCall i -> sprintf "    return_call_indirect %d" i
+  | WCallIndirect (d, false) -> sprintf "    call_indirect %s" (string_of_func_type (replicate I64 d, I64))
+  | WCallIndirect (d, true) -> sprintf "    return_call_indirect %s" (string_of_func_type (replicate I64 d, I64))
   | WIfThen ws ->
       sprintf "    (if\n      (then\n    %s\n      )\n    )"
         (String.concat "\n    " (List.map string_of_winstr ws))

@@ -216,7 +216,7 @@ and compile_cexpr
             WI32WrapI64;
             (* we push on 1 + length(args) arguments, so that's how we annotate our call
                that way our wasm binary typechecks *)
-            WCallIndirect (1 + List.length args) ]
+            WCallIndirect ((1 + List.length args), is_tail) ]
         in
         (wfuns_so_far, tag_arity_check @ (func_imm :: arg_imms) @ call)
     | Native name ->

@@ -15,10 +15,11 @@
   - [x] FIGURE OUT: currently, `nil` doesn't work the way we want it to, since 0 is a valid
         slot in the linear memory. We can offset by 16, or the shadow stack will do that for us
         (although I am not optimistic about being able to get to GC...)
-  - [ ] Tail calls
+  - [x] Tail calls
 - [ ] Runtime functions
-  - [ ] Printing tuples
-  - [ ] Equal, input
+  - [x] Printing tuples
+  - [x] Equal
+  - [ ] Input?
 
 - [ ] Figure out how to serve `.wasm` files
   1. We can write our `.wat` on the server, invoke `wat2wasm`, and then read the resulting `.wasm` file
