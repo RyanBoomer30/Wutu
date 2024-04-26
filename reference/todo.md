@@ -7,7 +7,7 @@
       look at `runner` to see how they do it
 
 - [x] Update naive_stack_allocation to first return indices, then map them to slots
-- [ ] Code generation (AKA the hard part...): test as you go!
+- [x] Code generation (AKA the hard part...): test as you go!
   - [x] Lambda
   - [x] EApp
   - [x] LetRec
@@ -16,21 +16,21 @@
         slot in the linear memory. We can offset by 16, or the shadow stack will do that for us
         (although I am not optimistic about being able to get to GC...)
   - [x] Tail calls
-- [ ] Runtime functions
+- [x] Runtime functions
   - [x] Printing tuples
   - [x] Equal
-  - [ ] Input?
+  - [x] Input?
 
-- [ ] Figure out how to serve `.wasm` files
+- [x] Figure out how to serve `.wasm` files
   1. We can write our `.wat` on the server, invoke `wat2wasm`, and then read the resulting `.wasm` file
   2. We could try to parse into the `Wasm` ast, then turn that into bytes
   3. We could go in two steps: write `.wasm` to the server, and return. THEN, fetch `.wasm` directly
   - Depending on what we choose, we will have to update `.server` accordingly,
     (probably fix the deprecated stuff too), and maybe extra `compile` handlers
     - Remember, don't mix Core with the standard library stuff
-- [ ] Make file rule for server? Phony exec? Actual build? There were some compilation troubles…
+- [x] Make file rule for server? Phony exec? Actual build? There were some compilation troubles…
 
-- [ ] Other interesting stuff like interop stuff
+- [x] Other interesting stuff like interop stuff
 
 
 ## Think

@@ -256,6 +256,68 @@ function display_val(snakeval) {
   return snakeval;
 }
 
+// takes an pointer to a closure and reads memory to get its funptr index
+// if the closure is not actually a closure with the given arity, throws error
+function closure_to_funptr(closure, arity, mem, name) {
+  let unsigned = BigInt.asUintN(64, closure);
+
+  if ((unsigned & CLOSURE_TAG_MASK) !== CLOSURE_TAG) {
+    throw new Error("Error: " + name + "expects a closure");
+  }
+
+  let untagged = Number(unsigned - CLOSURE_TAG);
+  let addr = untagged / WORD_SIZE;
+
+  let fun_arity = mem[addr] >> 1n;
+  // we store arity, without closure, as a SNAKEVAL
+  if (fun_arity !== arity) {
+    throw new Error(
+      "Error: addTrigger takes a " +
+        arity.toString() +
+        "-argument closure, got " +
+        fun_arity
+    );
+  }
+
+  // we shift, since we stored tblptr as a SNAKEVAL (for GC)
+  return Number(mem[addr + 1] >> 1n);
+}
+
+function add_trigger(clos) {
+  let mem = new BigInt64Array(memory.buffer);
+  const tblptr = closure_to_funptr(clos, 0n, mem, "addTrigger");
+
+  const trig = document.getElementById("triggerButton");
+  trig.addEventListener("click", () => table.get(tblptr)(clos));
+
+  return clos;
+}
+
+function big_bang(on_tick, render, value, should_world_end) {
+  let mem = new BigInt64Array(memory.buffer);
+
+  const on_tick_ptr = closure_to_funptr(on_tick, 1n, mem, "onTick");
+  const onTick = table.get(on_tick_ptr);
+
+  const render_ptr = closure_to_funptr(render, 1n, mem, "render");
+  const renderVal = table.get(render_ptr);
+
+  const should_world_end_ptr = closure_to_funptr(should_world_end, 1n, mem, "shouldWorldEnd");
+  const shouldWorldEnd = table.get(should_world_end_ptr);
+  
+  let unsigned_tr = BigInt.asUintN(64, tick_rate);
+  if ((unsigned_tr & NUM_TAG_MASK) !== NUM_TAG) {
+    throw new Error("Error: tick rate must be a number");
+  }
+
+  while (shouldWorldEnd(should_world_end, value) === BOOL_FALSE) {    
+    display_val(renderVal(render, value));
+    value = onTick(on_tick, value);
+  }
+  
+  return value;
+}
+
 function equal(v1, v2) {
   let mem = new BigInt64Array(memory.buffer);
 
@@ -311,7 +373,7 @@ function equal_help(v1, v2, mem) {
 }
 
 // Only from browser
-function input() {  
+function input() {
   let res = prompt("Enter in a number or literal").toLowerCase();
 
   if (res === "true") {
@@ -325,7 +387,7 @@ function input() {
   }
 
   try {
-    return BigInt(res) << 1n;;
+    return BigInt(res) << 1n;
   } catch (e) {
     alert("That was not a valid entry, try again!");
     return input();
@@ -353,7 +415,9 @@ const importObject = {
     equal: equal,
     input: input,
     alert_val: alert_val,
-    display_val: display_val
+    display_val: display_val,
+    add_trigger: add_trigger,
+    big_bang: big_bang,
   },
 };
 
@@ -366,8 +430,9 @@ function print_table() {
   }
 }
 
-if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
   module.exports = { importObject, print, print_table };
-} else { // For web environment
+} else {
+  // For web environment
   window.runtime = { importObject, snake_to_string, memory };
 }

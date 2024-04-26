@@ -88,9 +88,11 @@ type funenvt = (string * call_type * int) list
 let initial_fun_env : funenvt =
   [ ("print", Native "print", 1);
     ("input", Native "input", 0);
+    ("addTrigger", Native "add_trigger", 1);
     ("equal", Native "equal", 2);
     ("alert", Native "alert_val", 1);
-    ("display", Native "display_val", 1) ]
+    ("display", Native "display_val", 1);
+    ("bigBang", Native "big_bang", 4) ]
 ;;
 
 (* INVARIANT: every EApp with Native call_type is currently Native;

@@ -1,4 +1,3 @@
-// import { importObject, snake_to_string, memory } from "../compiler/runtime.js";
 import "../compiler/runtime.js";
 
 const form = document.getElementById("runButton");
@@ -35,12 +34,19 @@ async function handleData(input) {
       bytes[i] = binaryString.charCodeAt(i);
     }
 
+    // before we instantiate, reset the trigger callback
+    // by cloning and replacing the button (which doesn't take event listeners)
+    const old_trigger = document.getElementById("triggerButton");
+    const new_trigger = old_trigger.cloneNode(true);
+    old_trigger.parentNode.replaceChild(new_trigger, old_trigger);
+
     WebAssembly.instantiate(bytes, runtime.importObject).then((obj) => {
       try {
         let answer = obj.instance.exports.our_code_starts_here();
         let mem = new BigInt64Array(runtime.memory.buffer);
         output.textContent += runtime.snake_to_string(answer, mem) + "\n";
       } catch (err) {
+        console.log(err);
         output.textContent += "Runtime " + err.message + "\n";
       }
     });
