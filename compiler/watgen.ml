@@ -458,8 +458,15 @@ let build_load_fun name mask tag to_untag : wfunc =
   (Some name, None, 2, 0, instrs_no_untag @ instrs_ret)
 ;;
 
-let compile_prog ?(no_builtins = false) ((anfed : (tag * StringSet.t) aprogram), (env : int envt tag_envt)) : wmodule =
-  let imported_funs = if no_builtins then unwrapped_fun_env else initial_fun_env @ unwrapped_fun_env in
+let compile_prog
+    ?(no_builtins = false)
+    ((anfed : (tag * StringSet.t) aprogram), (env : int envt tag_envt)) : wmodule =
+  let imported_funs =
+    if no_builtins then
+      unwrapped_fun_env
+    else
+      initial_fun_env @ unwrapped_fun_env
+  in
   let num_imports = List.length imported_funs in
   (* wrap up the imported runtime functions as imports *)
   let fun_imports =

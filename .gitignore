@@ -17,3 +17,4 @@ tests/output/*/*.dSYM
 *.log
 **/_build/*
 **/.DS_Store
+playground/temp.*

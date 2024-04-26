@@ -86,7 +86,11 @@ let combine_sourcespan s1 s2 =
 type funenvt = (string * call_type * int) list
 
 let initial_fun_env : funenvt =
-  [("print", Native "print", 1); ("input", Native "input", 0); ("equal", Native "equal", 2)]
+  [ ("print", Native "print", 1);
+    ("input", Native "input", 0);
+    ("equal", Native "equal", 2);
+    ("alert", Native "alert_val", 1);
+    ("display", Native "display_val", 1) ]
 ;;
 
 (* INVARIANT: every EApp with Native call_type is currently Native;

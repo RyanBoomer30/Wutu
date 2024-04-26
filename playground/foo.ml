@@ -22,57 +22,54 @@ let wasm_file_to_binary_string filename =
     base64_string
   with e ->
     (* Make sure to close the file in case of an exception *)
-    close_in_noerr input_channel;
-    raise e
-  
-let handler ~body:body _sock req =
+    close_in_noerr input_channel; raise e
+;;
+
+let handler ~body _sock req =
   Stdlib.Printf.eprintf "handler check\n%!";
-  let headers = Cohttp.Header.of_list [
-    ("Access-Control-Allow-Origin", "*");
-    ("Content-Type", "application/json")] in
+  let headers =
+    Cohttp.Header.of_list
+      [("Access-Control-Allow-Origin", "*"); ("Content-Type", "application/json")]
+  in
   let meth = Cohttp.Request.meth req in
   let () = Stdlib.Printf.eprintf "Method: %s\n%!" (Cohttp.Code.string_of_method meth) in
   match meth with
   | `POST ->
-    (* Receive code data from Client *)
-    Body.to_string body >>= fun body_string ->
-    Stdlib.Printf.eprintf "Received: %s\n%!" body_string;
-
-    (* Compile the code (rn just a placeholder)*)
-    let wasm_filename = "simple.wasm" in
-    let wasm_binary_string = wasm_file_to_binary_string wasm_filename in
-
-    (* Send wasm data or error to Client *)
-    let json_response = `Assoc [
-      ("result", `String "success");
-      ("value", `String wasm_binary_string)
-    ] in
-    let response_body = Yojson.Basic.to_string json_response in
-    Stdlib.Printf.eprintf "Response: %s\n%!" response_body;
-    let body = Body.of_string response_body in
-    Stdlib.Printf.eprintf "Responding\n%!";
-    Server.respond ~headers:headers `OK ~body:body
-  | _ -> 
-    Stdlib.Printf.eprintf "Nope%!";
-    Server.respond `Method_not_allowed
+      (* Receive code data from Client *)
+      Body.to_string body
+      >>= fun body_string ->
+      Stdlib.Printf.eprintf "Received: %s\n%!" body_string;
+      (* Compile the code (rn just a placeholder)*)
+      let wasm_filename = "simple.wasm" in
+      let wasm_binary_string = wasm_file_to_binary_string wasm_filename in
+      (* Send wasm data or error to Client *)
+      let json_response =
+        `Assoc [("result", `String "success"); ("value", `String wasm_binary_string)]
+      in
+      let response_body = Yojson.Basic.to_string json_response in
+      Stdlib.Printf.eprintf "Response: %s\n%!" response_body;
+      let body = Body.of_string response_body in
+      Stdlib.Printf.eprintf "Responding\n%!";
+      Server.respond ~headers `OK ~body
+  | _ ->
+      Stdlib.Printf.eprintf "Nope%!";
+      Server.respond `Method_not_allowed
+;;
 
 let start_server port () =
   Stdlib.Printf.eprintf "Listening for HTTP on port %d\n" port;
   Stdlib.Printf.eprintf "Try curl -X POST -d 'foo bar' http://localhost:%d\n%!" port;
-  Server.create ~on_handler_error:`Raise
-    (Async.Tcp.Where_to_listen.of_port port)
-    handler
-  >>= fun _ -> 
-    Stdlib.Printf.eprintf "Server started\n";
-    Deferred.never ()
+  Server.create ~on_handler_error:`Raise (Async.Tcp.Where_to_listen.of_port port) handler
+  >>= fun _ ->
+  Stdlib.Printf.eprintf "Server started\n";
+  Deferred.never ()
+;;
 
 let () =
   let module Command = Async_command in
   Command.async_spec ~summary:"Simple http server that outputs body of POST's"
     Command.Spec.(
-      empty
-      +> flag "-p"
-           (optional_with_default 8080 int)
-           ~doc:"int Source port to listen on")
+      empty +> flag "-p" (optional_with_default 8080 int) ~doc:"int Source port to listen on" )
     start_server
   |> Command_unix.run
+;;

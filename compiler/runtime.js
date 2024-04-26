@@ -242,6 +242,20 @@ function print(snakeval) {
   return snakeval;
 }
 
+function alert_val(snakeval) {
+  let mem = new BigInt64Array(memory.buffer);
+  alert(snake_to_string(snakeval, mem));
+  return snakeval;
+}
+
+function display_val(snakeval) {
+  let mem = new BigInt64Array(memory.buffer);
+  let res = snake_to_string(snakeval, mem);
+
+  document.getElementById("output").innerHTML += res + "\n";
+  return snakeval;
+}
+
 function equal(v1, v2) {
   let mem = new BigInt64Array(memory.buffer);
 
@@ -338,6 +352,8 @@ const importObject = {
     print: print,
     equal: equal,
     input: input,
+    alert_val: alert_val,
+    display_val: display_val
   },
 };
 
@@ -350,5 +366,8 @@ function print_table() {
   }
 }
 
-// module.exports = { importObject, print, print_table };
-export { importObject, print };
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+  module.exports = { importObject, print, print_table };
+} else { // For web environment
+  window.runtime = { importObject, snake_to_string, memory };
+}

@@ -36,10 +36,12 @@ let handler ~body _sock req =
       >>= fun body_string ->
       (* Parse body into compiler *)
       let json_response =
-        match compile_string_to_string ~target:Exprs.Wasm Exprs.Naive "" body_string with
+        match
+          compile_string_to_string ~target:Exprs.Wasm Exprs.Naive "user_program" body_string
+        with
         | Error (errs, _) ->
             let errs = ExtString.String.join "\n" (Errors.print_errors errs) in
-            `Assoc [("result", `String "failure"); ("value", `String errs)]
+            `Assoc [("did_compile", `Bool false); ("value", `String errs)]
         | Ok (wat_string, _) ->
             (* for now, we just write the file as a .wat, convert to .wasm, and read back *)
             let outfile = open_out "playground/temp.wat" in
@@ -47,7 +49,9 @@ let handler ~body _sock req =
             close_out outfile;
             let bstdout, bstdout_name, bstderr, bstderr_name, bstdin = make_tmpfiles "build" "" in
             let built_pid =
-              Caml_unix.create_process "make" (Array.of_list ["make"; "playground/temp.wasm"]) bstdin bstdout bstderr
+              Caml_unix.create_process "make"
+                (Array.of_list ["make"; "playground/temp.wasm"])
+                bstdin bstdout bstderr
             in
             let _, status = Caml_unix.waitpid [] built_pid in
             let out = "temp" in
@@ -64,19 +68,20 @@ let handler ~body _sock req =
             let result =
               match try_running with
               | Error msg -> failwith msg
-              | Ok _ -> let wasm_binary_string = wasm_file_to_binary_string "playground/temp.wasm" in
-              `Assoc [("result", `String "success"); ("value", `String wasm_binary_string)]
+              | Ok _ ->
+                  let wasm_binary_string = wasm_file_to_binary_string "playground/temp.wasm" in
+                  `Assoc [("did_compile", `Bool true); ("value", `String wasm_binary_string)]
             in
             result
       in
       (* (* Compile the code (rn just a placeholder): we will be able
-         to produce wasm directly instead of needing this extra bit *)
-      let wasm_filename = "simple.wasm" in
-      let wasm_binary_string = wasm_file_to_binary_string wasm_filename in
-      (* Send wasm data (or compile-time error messages) to Client *)
-      let json_response =
-        `Assoc [("result", `String "success"); ("value", `String wasm_binary_string)]
-      in *)
+            to produce wasm directly instead of needing this extra bit *)
+         let wasm_filename = "simple.wasm" in
+         let wasm_binary_string = wasm_file_to_binary_string wasm_filename in
+         (* Send wasm data (or compile-time error messages) to Client *)
+         let json_response =
+           `Assoc [("result", `String "success"); ("value", `String wasm_binary_string)]
+         in *)
       let response_body = Yojson.Basic.to_string json_response in
       let body = Body.of_string response_body in
       Server.respond ~headers `OK ~body
@@ -88,20 +93,17 @@ let handler ~body _sock req =
 let start_server port () =
   Stdlib.Printf.eprintf "Listening for HTTP on port %d\n" port;
   Stdlib.Printf.eprintf "Try curl -X POST -d 'foo bar' http://localhost:%d\n%!" port;
-  Server.create ~on_handler_error:`Raise
-    (Async.Tcp.Where_to_listen.of_port port)
-    handler
-  >>= fun _ -> 
-    Stdlib.Printf.eprintf "Server started\n";
-    Deferred.never ()
+  Server.create ~on_handler_error:`Raise (Async.Tcp.Where_to_listen.of_port port) handler
+  >>= fun _ ->
+  Stdlib.Printf.eprintf "Server started\n";
+  Deferred.never ()
+;;
 
 let () =
   let module Command = Async_command in
   Command.async_spec ~summary:"Simple http server that outputs body of POST's"
     Command.Spec.(
-      empty
-      +> flag "-p"
-           (optional_with_default 8080 int)
-           ~doc:"int Source port to listen on")
+      empty +> flag "-p" (optional_with_default 8080 int) ~doc:"int Source port to listen on" )
     start_server
   |> Command_unix.run
+;;
