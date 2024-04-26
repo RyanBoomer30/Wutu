@@ -2,3 +2,15 @@ textarea {
     width: 100%;        /* Make textarea take full width of the container */
     box-sizing: border-box; /* Include padding and border in the width */
 }
+
+.container {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.column {
+    flex: 1;
+    box-sizing: border-box;
+    padding: 0 10px; /* Add this line for padding */
+}
