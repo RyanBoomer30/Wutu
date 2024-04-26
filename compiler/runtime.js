@@ -311,7 +311,7 @@ function input() {
   }
 
   try {
-    return BigInt(res);
+    return BigInt(res) << 1n;;
   } catch (e) {
     alert("That was not a valid entry, try again!");
     return input();

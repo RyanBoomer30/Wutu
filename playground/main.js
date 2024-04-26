@@ -1,9 +1,15 @@
 import { importObject, print } from "../compiler/runtime.js";
 
-// The parse function that processes the input data
-window.parse = function(input) {
-  // console.log("Received input:", input);
-  handleData(input);
+const form = document.getElementById("runButton");
+form.addEventListener("click", handle_submit);
+
+function handle_submit() {
+  const code = document.getElementById('code').value;
+  handleData(code);
+};
+
+function foo(code) {
+  console.log(code);
 }
 
 async function handleData(input) {

@@ -26,6 +26,10 @@ test: main $(TESTDIR)/*.ml
 
 ## SERVER ##
 
+.PHONY: serve
+serve:
+	dune exec ./server.exe
+
 playground/%.wasm: playground/%.wat
 	wat2wasm $< -o $@ --enable-tail-call
 
