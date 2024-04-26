@@ -1,37 +1,6 @@
-- [x] `.wasm` test helpers
-  - [x] Figure out how to run `node` with the relevant `.wasm` file
-  - [x] Make new `runner` helpers, maybe make `wasmrunner` or something
-  - [x] Maybe update `Makefile` as well to make the proper `.wasm` files
-  - [ ] Implement file test: add arg to `input_file_test_suite`
-- [x] Check out how to pass in arguments to `node` test harness,
-      look at `runner` to see how they do it
-
-- [x] Update naive_stack_allocation to first return indices, then map them to slots
-- [x] Code generation (AKA the hard part...): test as you go!
-  - [x] Lambda
-  - [x] EApp
-  - [x] LetRec
-  - [x] Nil
-  - [x] FIGURE OUT: currently, `nil` doesn't work the way we want it to, since 0 is a valid
-        slot in the linear memory. We can offset by 16, or the shadow stack will do that for us
-        (although I am not optimistic about being able to get to GC...)
-  - [x] Tail calls
-- [x] Runtime functions
-  - [x] Printing tuples
-  - [x] Equal
-  - [x] Input?
-
-- [x] Figure out how to serve `.wasm` files
-  1. We can write our `.wat` on the server, invoke `wat2wasm`, and then read the resulting `.wasm` file
-  2. We could try to parse into the `Wasm` ast, then turn that into bytes
-  3. We could go in two steps: write `.wasm` to the server, and return. THEN, fetch `.wasm` directly
-  - Depending on what we choose, we will have to update `.server` accordingly,
-    (probably fix the deprecated stuff too), and maybe extra `compile` handlers
-    - Remember, don't mix Core with the standard library stuff
-- [x] Make file rule for server? Phony exec? Actual build? There were some compilation troubles…
-
-- [x] Other interesting stuff like interop stuff
-
+- [ ] Remove duplication in pipeline (parameterized by input functions and by the backend)
+  - [ ] Clean up `no_js_builtins`
+- [ ] Implement file test: add arg to `input_file_test_suite`
 
 ## Think
 - Read more about how LLVM uses the shadow stack
