@@ -537,7 +537,9 @@ let input_file_test_suite () =
                 (safe_readdir "tests/input/dont_err" ".wutu") ]
 ;;
 
-(* temporary, helps with testing for now, which is why depr is okay *)
+(* one could argue this belongs in server.ml, but then there are Core / Unix conflicts
+   keeping things here prevents things from exploding: Core and Unix shouldn't mix!
+   Unfortunately, the HTTP library uses core *)
 let wasm_file_to_binary_string filename =
   (* Open the file in binary mode *)
   let input_channel = open_in_bin filename in
