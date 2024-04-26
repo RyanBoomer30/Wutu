@@ -143,8 +143,10 @@ let rec string_of_winstr winst =
   | WCall s -> sprintf "    call $%s" s
   (* we have to spell these all out inline, to get the wat to consistently compile
      if the user has errors in _their_ arities *)
-  | WCallIndirect (d, false) -> sprintf "    call_indirect %s" (string_of_func_type (replicate I64 d, I64))
-  | WCallIndirect (d, true) -> sprintf "    return_call_indirect %s" (string_of_func_type (replicate I64 d, I64))
+  | WCallIndirect (d, false) ->
+      sprintf "    call_indirect %s" (string_of_func_type (replicate I64 d, I64))
+  | WCallIndirect (d, true) ->
+      sprintf "    return_call_indirect %s" (string_of_func_type (replicate I64 d, I64))
   | WIfThen ws ->
       sprintf "    (if\n      (then\n    %s\n      )\n    )"
         (String.concat "\n    " (List.map string_of_winstr ws))

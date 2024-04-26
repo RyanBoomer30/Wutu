@@ -186,11 +186,10 @@ and compile_cexpr
             @ load_num imm_right (err_code err_PATTERN_NOT_TUPLE)
             @ [ WNe;
                 WIfThen
-                  [imm_right; WI64Const (err_code err_TUPLE_SIZE_MISMATCH); WCall error_fun; WDrop ];
-                (* since we assign _ = checkSize(...), that will drop "the answer". 
+                  [imm_right; WI64Const (err_code err_TUPLE_SIZE_MISMATCH); WCall error_fun; WDrop];
+                (* since we assign _ = checkSize(...), that will drop "the answer".
                    however, we don't really have "an answer", so this is the placeholder to drop *)
-                WI64HexConst const_nil ]
-          ) )
+                WI64HexConst const_nil ] ) )
   | CApp (func, args, ct, _) -> (
     match ct with
     | Snake ->
@@ -216,7 +215,7 @@ and compile_cexpr
             WI32WrapI64;
             (* we push on 1 + length(args) arguments, so that's how we annotate our call
                that way our wasm binary typechecks *)
-            WCallIndirect ((1 + List.length args), is_tail) ]
+            WCallIndirect (1 + List.length args, is_tail) ]
         in
         (wfuns_so_far, tag_arity_check @ (func_imm :: arg_imms) @ call)
     | Native name ->

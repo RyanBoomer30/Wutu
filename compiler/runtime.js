@@ -200,7 +200,7 @@ function error(snakeval, code) {
 }
 
 function snake_to_string(snakeval, mem) {
-  unsigned = BigInt.asUintN(64, snakeval); // interpret as unsigned
+  let unsigned = BigInt.asUintN(64, snakeval); // interpret as unsigned
 
   if (unsigned === BOOL_TRUE) {
     return "true";
@@ -268,12 +268,12 @@ function equal_help(v1, v2, mem) {
       return false;
     }
 
-    untagged_v1 = Number(v1 - TUPLE_TAG);
-    untagged_v2 = Number(v2 - TUPLE_TAG);
+    let untagged_v1 = Number(v1 - TUPLE_TAG);
+    let untagged_v2 = Number(v2 - TUPLE_TAG);
 
     // we have to divide by word size to convert from bytes to words,
-    addr_v1 = untagged_v1 / WORD_SIZE;
-    addr_v2 = untagged_v2 / WORD_SIZE;
+    let addr_v1 = untagged_v1 / WORD_SIZE;
+    let addr_v2 = untagged_v2 / WORD_SIZE;
 
     // then shift to go from SNAKEVAL to normal value
     let size_v1 = mem[addr_v1] >> 1n;
@@ -350,4 +350,5 @@ function print_table() {
   }
 }
 
-module.exports = { importObject, print, print_table };
+// module.exports = { importObject, print, print_table };
+export { importObject, print };

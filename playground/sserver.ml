@@ -4,6 +4,7 @@ open Async_kernel
 module Body = Cohttp_async.Body
 module Server = Cohttp_async.Server
 open Runner
+open Wasm
 
 (* temporary, helps with testing for now, which is why depr is okay *)
 let wasm_file_to_binary_string filename =
@@ -42,12 +43,12 @@ let handler ~body _sock req =
             `Assoc [("result", `String "failure"); ("value", `String errs)]
         | Ok (wat_string, _) ->
             (* for now, we just write the file as a .wat, convert to .wasm, and read back *)
-            let outfile = open_out "playground/temp.wat" in
+            let outfile = open_out "temp.wat" in
             fprintf outfile "%s" wat_string;
             close_out outfile;
             let bstdout, bstdout_name, bstderr, bstderr_name, bstdin = make_tmpfiles "build" "" in
             let built_pid =
-              Caml_unix.create_process "make" (Array.of_list ["make"; "playground/temp.wasm"]) bstdin bstdout bstderr
+              Caml_unix.create_process "make" (Array.of_list ["make"; "temp.wasm"]) bstdin bstdout bstderr
             in
             let _, status = Caml_unix.waitpid [] built_pid in
             let out = "temp" in
@@ -64,7 +65,7 @@ let handler ~body _sock req =
             let result =
               match try_running with
               | Error msg -> failwith msg
-              | Ok _ -> let wasm_binary_string = wasm_file_to_binary_string "playground/temp.wasm" in
+              | Ok _ -> let wasm_binary_string = wasm_file_to_binary_string "temp.wasm" in
               `Assoc [("result", `String "success"); ("value", `String wasm_binary_string)]
             in
             result
@@ -87,21 +88,17 @@ let handler ~body _sock req =
 
 let start_server port () =
   Stdlib.Printf.eprintf "Listening for HTTP on port %d\n" port;
-  Stdlib.Printf.eprintf "Try curl -X POST -d 'foo bar' http://localhost:%d\n%!" port;
-  Server.create ~on_handler_error:`Raise
-    (Async.Tcp.Where_to_listen.of_port port)
-    handler
-  >>= fun _ -> 
-    Stdlib.Printf.eprintf "Server started\n";
-    Deferred.never ()
+  Server.create ~on_handler_error:`Raise (Async.Tcp.Where_to_listen.of_port port) handler
+  >>= fun _ ->
+  Stdlib.Printf.eprintf "Server started\n";
+  Deferred.never ()
+;;
 
 let () =
   let module Command = Async_command in
   Command.async_spec ~summary:"Simple http server that outputs body of POST's"
     Command.Spec.(
-      empty
-      +> flag "-p"
-           (optional_with_default 8080 int)
-           ~doc:"int Source port to listen on")
+      empty +> flag "-p" (optional_with_default 8080 int) ~doc:"int Source port to listen on" )
     start_server
   |> Command_unix.run
+;;

@@ -24,6 +24,12 @@ test: main $(TESTDIR)/*.ml
 	$(BUILD) -I compiler -package $(PKGS) $(TESTDIR)/test.native
 	mv test.native test
 
+## SERVER ##
+
+playground/%.wasm: playground/%.wat
+	wat2wasm $< -o $@ --enable-tail-call
+
+
 ## OCAML TESTS ##
 
 # x86_64

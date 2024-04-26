@@ -1,16 +1,10 @@
+import { importObject, print } from "../compiler/runtime.js";
+
 // The parse function that processes the input data
-function parse(input) {
+window.parse = function(input) {
   // console.log("Received input:", input);
   handleData(input);
 }
-
-const importObject = {
-  imports: {
-    imported_func: (arg) => {
-      console.log((arg >> 0n).toString());
-    },
-  },
-};
 
 async function handleData(input) {
   try {
@@ -34,8 +28,9 @@ async function handleData(input) {
         bytes[i] = binaryString.charCodeAt(i);
       }
 
-      WebAssembly.instantiate(bytes, importObject).then((result) => {
-        result.instance.exports.exported_func()
+      WebAssembly.instantiate(bytes, importObject).then(obj => {
+        let answer = obj.instance.exports.our_code_starts_here();
+        print(answer);
       });
     } else {
       throw new Error('HTTP error: ' + response.status);
