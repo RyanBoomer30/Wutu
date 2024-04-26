@@ -12,6 +12,10 @@ extern SNAKEVAL print(SNAKEVAL val) asm("print");
 extern SNAKEVAL input() asm("input");
 extern SNAKEVAL printStack(SNAKEVAL val, uint64_t* rsp, uint64_t* rbp, int args) asm("print_stack");
 extern SNAKEVAL equal(SNAKEVAL val1, SNAKEVAL val2) asm("equal");
+extern SNAKEVAL add_trigger(SNAKEVAL val) asm("add_trigger");
+extern SNAKEVAL alert_val(SNAKEVAL val) asm("alert_val");
+extern SNAKEVAL display_val(SNAKEVAL val) asm("display_val");
+extern SNAKEVAL big_bang(SNAKEVAL on_tick, SNAKEVAL render, SNAKEVAL value, SNAKEVAL should_world_end) asm("big_bang");
 extern uint64_t* try_gc(uint64_t* alloc_ptr, uint64_t amount_needed, uint64_t* first_frame, uint64_t* stack_top) asm("?try_gc");
 extern uint64_t* STACK_BOTTOM asm("STACK_BOTTOM");
 extern uint64_t* HEAP_END asm("?HEAP_END");
@@ -224,6 +228,22 @@ SNAKEVAL print(SNAKEVAL val) {
   printf("\n");
   fflush(stdout);
   return val;
+}
+
+SNAKEVAL add_trigger(SNAKEVAL val) {
+    fprintf(stderr, "Error: X86_64 does not support addTrigger\n");
+}
+
+SNAKEVAL alert_val(SNAKEVAL val) {
+    fprintf(stderr, "Error: X86_64 does not support alert\n");
+}
+
+SNAKEVAL display_val(SNAKEVAL val) {
+    fprintf(stderr, "Error: X86_64 does not support display\n");
+}
+
+SNAKEVAL big_bang(SNAKEVAL on_tick, SNAKEVAL render, SNAKEVAL value, SNAKEVAL should_world_end) {
+    fprintf(stderr, "Error: X86_64 does not support bigBang\n");
 }
 
 void error(uint64_t code, SNAKEVAL val) {

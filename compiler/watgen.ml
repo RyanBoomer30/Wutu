@@ -465,7 +465,7 @@ let compile_prog
     if no_builtins then
       unwrapped_fun_env
     else
-      initial_fun_env @ unwrapped_fun_env
+      initial_fun_env @ js_fun_env @ unwrapped_fun_env
   in
   let num_imports = List.length imported_funs in
   (* wrap up the imported runtime functions as imports *)

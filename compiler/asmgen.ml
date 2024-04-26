@@ -621,7 +621,7 @@ let compile_prog ((anfed : (tag * StringSet.t) aprogram), (env : arg envt tag_en
     | Native s -> sprintf "extern %s" s
     | _ -> ""
   in
-  let prelude = prelude_no_defaults ^ String.concat "\n" (List.map get_asm_label initial_fun_env) in
+  let prelude = prelude_no_defaults ^ String.concat "\n" (List.map get_asm_label (initial_fun_env @ js_fun_env)) in
   let error_handle_label (code, name) =
     ILabel (name, None)
     :: [IMov (Reg RSI, Reg RAX); IMov (Reg RDI, Const code); ICall (Label "error")]
@@ -691,7 +691,7 @@ let compile_to_asm_string
     (alloc_strat : alloc_strategy)
     (prog : sourcespan program pipeline) : string pipeline =
   prog
-  |> add_phase desugared (desugar ~no_builtins)
+  |> add_phase desugared (desugar ~no_builtins ~no_js_builtins:true)
   |> add_err_phase well_formed is_well_formed
   |> add_phase tagged tag |> add_phase renamed rename_and_tag
   |> add_phase anfed (fun p -> atag (anf p))

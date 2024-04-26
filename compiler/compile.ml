@@ -82,14 +82,12 @@ let combine_sourcespan s1 s2 =
   | _ -> raise (InternalCompilerError "cannot combine native sourcespans")
 ;;
 
-(* stores the concrete syntax name, the call type, and the arity *)
-type funenvt = (string * call_type * int) list
-
 let initial_fun_env : funenvt =
-  [ ("print", Native "print", 1);
-    ("input", Native "input", 0);
-    ("addTrigger", Native "add_trigger", 1);
-    ("equal", Native "equal", 2);
+  [("print", Native "print", 1); ("input", Native "input", 0); ("equal", Native "equal", 2)]
+;;
+
+let js_fun_env : funenvt =
+  [ ("addTrigger", Native "add_trigger", 1);
     ("alert", Native "alert_val", 1);
     ("display", Native "display_val", 1);
     ("bigBang", Native "big_bang", 4) ]
@@ -202,7 +200,8 @@ let deepest_stack (env : arg envt) : int =
    All native functions will be wrapped and added as an outermost `let rec`,
    with the call_type (and sourcespan) of the relevant native CApps being Native.
    All other EApps will still be Unknown *)
-let desugar ?(no_builtins = false) (p : sourcespan program) : sourcespan program =
+let desugar ?(no_builtins = false) ?(no_js_builtins = false) (p : sourcespan program) :
+    sourcespan program =
   let gensym =
     let next = ref 0 in
     fun name ->
@@ -335,7 +334,13 @@ let desugar ?(no_builtins = false) (p : sourcespan program) : sourcespan program
         if no_builtins then
           letreced
         else
-          ELetRec (List.map wrap initial_fun_env, letreced, get_tag_E letreced)
+          let funs =
+            if no_js_builtins then
+              initial_fun_env
+            else
+              initial_fun_env @ js_fun_env
+          in
+          ELetRec (List.map wrap funs, letreced, get_tag_E letreced)
       in
       Program ([], helpE wrapped, loc)
 ;;

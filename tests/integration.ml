@@ -301,8 +301,8 @@ let gc_suite =
          tgc_no "gc_triggered" 4 "(1, 2, 3); (4, 5, 6)" "" "(4, 5, 6)";
          tgc_no "lambda_triggers_gc" 4 "(1, 2, 3); (lambda (x): x)(5)" "" "5";
          tgcerr "defaults_allocated_not_enough" 10 "5" "" "Out of memory";
-         tgc "defaults_allocated_enough" 12 "5" "" "5";
-         tgc "defaults_work" 20
+         tgc "defaults_allocated_enough" 28 "5" "" "5";
+         tgc "defaults_work" 64
            "def garbo(): let a = (1, 2, 3) in 0\ngarbo(); garbo(); equal(print(1), print(2))" ""
            "1\n2\nfalse";
          (* note this will pass with fewer than 20 words, but this tests

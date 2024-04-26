@@ -84,6 +84,9 @@ and 'a expr =
   | ELambda of 'a bind list * 'a expr * 'a
   | ELetRec of 'a binding list * 'a expr * 'a
 
+(* stores the concrete syntax name, the call type, and the arity *)
+type funenvt = (string * call_type * int) list
+
 type 'a decl = DFun of string * 'a bind list * 'a expr * bool * 'a
 
 type 'a program = Program of 'a decl list list * 'a expr * 'a

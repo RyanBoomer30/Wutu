@@ -14,7 +14,7 @@ let list_to_graph lst =
 ;;
 
 (* we erase here, since we test that location information is preserved through t_wf_err *)
-let t_desugar = t_parse string_of_program (fun p -> untagP (desugar p))
+let t_desugar = t_parse string_of_program (fun p -> untagP (desugar ~no_js_builtins:true p))
 
 (* TESTS:
    - desugar case using `and` for decls
@@ -330,13 +330,17 @@ let desugar_suite =
 let t_wf name input =
   name
   >:: fun _ ->
-  let expected = desugar (parse_string name input) in
-  let result = Result.get_ok (is_well_formed (desugar (parse_string name input))) in
+  let expected = desugar ~no_js_builtins:true (parse_string name input) in
+  let result =
+    Result.get_ok (is_well_formed (desugar ~no_js_builtins:true (parse_string name input)))
+  in
   assert_equal expected result ~printer:string_of_program
 ;;
 
 (* alternatively, use (list_printer print_error) for more readable errors *)
-let t_wf_err = t_parse ExtLib.dump (fun p -> Result.get_error (is_well_formed (desugar p)))
+let t_wf_err =
+  t_parse ExtLib.dump (fun p -> Result.get_error (is_well_formed (desugar ~no_js_builtins:true p)))
+;;
 
 let well_formed_suite =
   "well_formed_tests"
@@ -597,7 +601,7 @@ let well_formed_suite =
 
 let t_anf =
   t_parse string_of_aprogram (fun p ->
-      anf (rename_and_tag (tag (Result.get_ok (is_well_formed (desugar p))))) )
+      anf (rename_and_tag (tag (Result.get_ok (is_well_formed (desugar ~no_js_builtins:true p))))) )
 ;;
 
 (* UTOP: (anf (rename_and_tag (tag (Result.get_ok (is_well_formed (desugar (parse_string "" str))))) ));; *)
@@ -809,13 +813,16 @@ let fv_suite =
 (* for ease of writing tests, does not rename: SO be careful about names *)
 let t_nsa =
   t_parse (print_nested_env arg_to_asm) (fun p ->
-      snd (naive_stack_allocation (free_vars_cache (atag (anf (tag (desugar p)))))) )
+      snd
+        (naive_stack_allocation
+           (free_vars_cache (atag (anf (tag (desugar ~no_js_builtins:true p))))) ) )
 ;;
 
 let t_nsa_no =
   t_parse (print_nested_env arg_to_asm) (fun p ->
       snd
-        (naive_stack_allocation (free_vars_cache (atag (anf (tag (desugar ~no_builtins:true p)))))) )
+        (naive_stack_allocation
+           (free_vars_cache (atag (anf (tag (desugar ~no_js_builtins:true ~no_builtins:true p))))) ) )
 ;;
 
 (* this will always be common, since we add this at the start. we take tags as arguments for modularity *)
@@ -861,7 +868,9 @@ let stack_allocation_suite =
    DOES NOT RENAME THINGS... so manually rename to avoid conflicts *)
 let t_interfere bi out name input_prog expected_list =
   let ap =
-    free_vars_cache (atag (anf (tag (desugar ~no_builtins:bi (parse_string name input_prog)))))
+    free_vars_cache
+      (atag
+         (anf (tag (desugar ~no_js_builtins:true ~no_builtins:bi (parse_string name input_prog)))) )
   in
   match ap with
   | AProgram (axpr, _) ->
@@ -974,7 +983,9 @@ let color_suite =
 
 let t_reg bi =
   t_parse (print_nested_env arg_to_asm) (fun p ->
-      snd (register_allocation (free_vars_cache (atag (anf (tag (desugar ~no_builtins:bi p)))))) )
+      snd
+        (register_allocation
+           (free_vars_cache (atag (anf (tag (desugar ~no_js_builtins:true ~no_builtins:bi p))))) ) )
 ;;
 
 let t_reg_no = t_reg true
