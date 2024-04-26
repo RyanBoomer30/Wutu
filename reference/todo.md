@@ -1,6 +1,8 @@
 - [ ] Remove duplication in pipeline (parameterized by input functions and by the backend)
   - [ ] Clean up `no_js_builtins`
 - [ ] Implement file test: add arg to `input_file_test_suite`
+- [ ] Figure out big bang async
+- [ ] GC
 
 ## Think
 - Read more about how LLVM uses the shadow stack
