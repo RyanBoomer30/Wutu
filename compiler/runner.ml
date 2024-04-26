@@ -1,6 +1,5 @@
 open Unix
 open Filename
-open Str
 open Asmgen
 open Watgen
 open Printf
@@ -118,7 +117,7 @@ let run_wasm (program_name : string) args std_input : (string, string) result =
   let ran_pid =
     Unix.create_process "node"
       (* all args could possibly be in run_(no_)vg is heap size, which doesn't
-         really apply for us... maybe we could reinterpret it in pages? *)
+         really apply for us... at least not yet *)
       (Array.of_list ["node"; "tests/harness.js"; program_name ^ ".wasm"])
       rstdin rstdout rstderr
   in
@@ -186,7 +185,7 @@ let run_asm
   let try_running =
     match status with
     | WEXITED 0 -> Ok (string_of_file bstdout_name)
-    | WEXITED n ->
+    | WEXITED _ ->
         Error
           (sprintf "Finished with error while building %s:\nStderr:\n%s\nStdout:\n%s" out
              (string_of_file bstderr_name) (string_of_file bstdout_name) )
@@ -196,7 +195,7 @@ let run_asm
   let result =
     match try_running with
     | Error _ -> try_running
-    | Ok msg -> runner out args std_input
+    | Ok _ -> runner out args std_input
   in
   List.iter close [bstdout; bstderr; bstdin];
   List.iter unlink [bstdout_name; bstderr_name];
@@ -291,7 +290,7 @@ let test_run
     outfile
     expected
     ?(cmp = ( = ))
-    test_ctxt =
+    _ =
   let full_outfile = "tests/output/" ^ outfile in
   let runner =
     match target with
@@ -317,7 +316,7 @@ let test_err
     outfile
     errmsg
     ?(vg = false)
-    test_ctxt =
+    _ =
   let full_outfile = "tests/output/" ^ outfile in
   let runner =
     match target with
@@ -340,14 +339,7 @@ let test_err
       | _ -> false )
 ;;
 
-let test_run_anf
-    ?(args = [])
-    ?(std_input = "")
-    program_anf
-    outfile
-    expected
-    ?(cmp = ( = ))
-    test_ctxt =
+let test_run_anf ?(args = []) ?(std_input = "") program_anf outfile expected ?(cmp = ( = )) _ =
   let full_outfile = "tests/output/" ^ outfile in
   let result = run_anf program_anf full_outfile run_no_vg args std_input in
   assert_equal (Ok (expected ^ "\n")) result ~cmp ~printer:result_printer
@@ -363,7 +355,7 @@ let test_run_valgrind
     outfile
     expected
     ?(cmp = ( = ))
-    test_ctxt =
+    _ =
   let full_outfile = "tests/output/" ^ outfile in
   let result =
     try
@@ -456,7 +448,7 @@ let test_does_err filename test_ctxt =
     ("do_err/" ^ filename) err ~vg:opts.valgrind test_ctxt
 ;;
 
-let test_doesnt_run filename test_ctxt =
+let test_doesnt_run filename _ =
   let filename = Filename.remove_extension filename in
   let progfile = sprintf "tests/input/dont_pass/%s.wutu" filename in
   let argsfile = sprintf "tests/input/dont_pass/%s.args" filename in
@@ -491,7 +483,7 @@ let test_doesnt_run filename test_ctxt =
       assert_bool (sprintf "Program %s currently fails (as expected for now)" filename) true
 ;;
 
-let test_doesnt_err filename test_ctxt =
+let test_doesnt_err filename _ =
   let filename = Filename.remove_extension filename in
   let progfile = sprintf "tests/input/dont_err/%s.wutu" filename in
   let argsfile = sprintf "tests/input/dont_err/%s.args" filename in
@@ -543,4 +535,20 @@ let input_file_test_suite () =
          >::: List.map
                 (fun f -> f >:: test_doesnt_err f)
                 (safe_readdir "tests/input/dont_err" ".wutu") ]
+;;
+
+(* temporary, helps with testing for now, which is why depr is okay *)
+let wasm_file_to_binary_string filename =
+  (* Open the file in binary mode *)
+  let input_channel = open_in_bin filename in
+  try
+    let file_length = in_channel_length input_channel in
+    let file_data = Bytes.create file_length in
+    (* Really read the file content into the bytes buffer then close *)
+    really_input input_channel file_data 0 file_length;
+    close_in input_channel;
+    (* Convert the bytes buffer to a _base64_ string *)
+    let base64_string = Base64.encode_exn (Bytes.to_string file_data) in
+    base64_string
+  with e -> close_in_noerr input_channel; raise e
 ;;

@@ -10,7 +10,7 @@ ifeq ($(UNAME), Darwin)
 endif
 endif
 
-PKGS=ounit2,extlib,unix,str
+PKGS=ounit2,extlib,unix,str,base64
 BUILD=ocamlbuild -r -use-ocamlfind -cflag -annot -ocamlyacc 'ocamlyacc -v'
 
 COMPDIR=compiler

@@ -17,20 +17,20 @@ let () =
            tuple_suite;
            binding_suite;
            lambda_suite;
-           compositionality_suite
-           (* gc_suite; *)
-           (* input_file_test_suite ()  *) ] )
+           compositionality_suite;
+           gc_suite;
+           input_file_test_suite () ] )
 ;;
 
-(* let () =
-     run_test_tt_main
-       ( "unit_tests"
-       >::: [ well_formed_suite;
-              desugar_suite;
-              anf_suite;
-              fv_suite;
-              stack_allocation_suite;
-              interfere_suite;
-              color_suite;
-              reg_alloc_suite ] )
-   ;; *)
+let () =
+  run_test_tt_main
+    ( "unit_tests"
+    >::: [ well_formed_suite;
+           desugar_suite;
+           anf_suite;
+           fv_suite;
+           stack_allocation_suite;
+           interfere_suite;
+           color_suite;
+           reg_alloc_suite ] )
+;;

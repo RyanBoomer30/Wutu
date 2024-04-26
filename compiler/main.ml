@@ -1,7 +1,5 @@
-open Compile
 open Runner
 open Printf
-open Lexing
 open Exprs
 open Errors
 open Phases
