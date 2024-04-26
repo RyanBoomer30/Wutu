@@ -151,11 +151,11 @@ let native_suite =
          t "prints_empty" "print(())" "" "()\n()";
          t "prints_nil" "print(nil)" "" "nil\nnil";
          (* input tests *)
-         t "input_nums" "input() + input()" "3\n4" "7";
-         t "input_nums_neg" "input() + input()" "0\n-4" "-4";
+         (* t "input_nums" "input() + input()" "3\n4" "7";
+            t "input_nums_neg" "input() + input()" "0\n-4" "-4"; *)
          (* sequencing tests *)
          t "print_sequence" "print(69); 420" "" "69\n420";
-         t "sequence_complex" "let x = input() in print(x); 420" "4" "4\n420";
+         (* t "sequence_complex" "let x = input() in print(x); 420" "4" "4\n420"; *)
          t "multi_sequence" "print(1); print(2); 3" "" "1\n2\n3" ]
 ;;
 

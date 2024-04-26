@@ -5,35 +5,24 @@ open Unit
 
 let () =
   run_test_tt_main
-    ( "temp_tests"
-    >::: [ (* Temp.prim1_suite;
-                Temp.prim2_suite;
-                Temp.comparison_suite;
-                Temp.if_suite;
-                Temp.logic_suite; *)
-           Temp.funcs ] )
+    ( "integration_tests"
+    >::: [ prim1_suite;
+           overflow_suite;
+           prim2_suite;
+           comparison_suite;
+           logic_suite;
+           if_suite;
+           native_suite;
+           equality_suite;
+           tuple_suite;
+           binding_suite;
+           lambda_suite;
+           compositionality_suite
+           (* gc_suite; *)
+           (* input_file_test_suite ()  *) ] )
 ;;
 
 (* let () =
-     run_test_tt_main
-       ( "integration_tests"
-       >::: [ prim1_suite;
-              overflow_suite;
-              prim2_suite;
-              comparison_suite;
-              logic_suite;
-              if_suite;
-              native_suite;
-              equality_suite;
-              tuple_suite;
-              binding_suite;
-              lambda_suite;
-              compositionality_suite;
-              gc_suite;
-              input_file_test_suite () ] )
-   ;;
-
-   let () =
      run_test_tt_main
        ( "unit_tests"
        >::: [ well_formed_suite;

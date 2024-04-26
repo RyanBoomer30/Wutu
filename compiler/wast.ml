@@ -55,6 +55,7 @@ type winstr =
   | WLe
   | WEq
   | WNe
+  | WEqz
   (* Conversions: *)
   | WI64ExtendI32
   | WI32WrapI64
@@ -170,6 +171,7 @@ let rec string_of_winstr winst =
   | WLe -> "    i64.le_s"
   | WEq -> "    i64.eq"
   | WNe -> "    i64.ne"
+  | WEqz -> "    i64.eqz"
   | WI64ExtendI32 -> "    i64.extend_i32_s"
   | WI32WrapI64 -> "    i32.wrap_i64"
   | WDrop -> "    drop"

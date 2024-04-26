@@ -18,6 +18,8 @@ const BOOL_TRUE = 0xffffffffffffffffn;
 const BOOL_FALSE = 0x7fffffffffffffffn;
 const NIL = 0n | TUPLE_TAG;
 
+const WORD_SIZE = 8;
+
 const ERR_COMP_NOT_NUM = 1;
 const ERR_ARITH_NOT_NUM = 2;
 const ERR_LOGIC_NOT_BOOL = 3;
@@ -197,7 +199,7 @@ function error(snakeval, code) {
   }
 }
 
-function snake_to_string(snakeval) {
+function snake_to_string(snakeval, mem) {
   unsigned = BigInt.asUintN(64, snakeval); // interpret as unsigned
 
   if (unsigned === BOOL_TRUE) {
@@ -206,22 +208,114 @@ function snake_to_string(snakeval) {
     return "false";
   } else if (unsigned === NIL) {
     return "nil";
+  } else if ((unsigned & CLOSURE_TAG_MASK) === CLOSURE_TAG) {
+    return "<function>";
   } else if ((unsigned & NUM_TAG_MASK) === NUM_TAG) {
     return (snakeval >> 1n).toString();
+  } else if ((unsigned & TUPLE_TAG_MASK) === TUPLE_TAG) {
+    let untagged = Number(snakeval - TUPLE_TAG);
+
+    let addr = untagged / WORD_SIZE;
+
+    let size = mem[addr] >> 1n; // convert from SNAKEVAL to actual value (in words)
+
+    let res = "(";
+    for (let i = 1; i <= size; i++) {
+      if (i != 1) {
+        res += ", ";
+      }
+      res += snake_to_string(mem[addr + i], mem);
+    }
+    // for compatibility with Racer
+    if (size == 1) {
+      res += ", ";
+    }
+    return res + ")";
   } else {
     return "Unknown value: " + unsigned.toString();
   }
 }
 
 function print(snakeval) {
-  console.log(snake_to_string(snakeval));
-  // figure out how to get rid of trailing newlines above
-  // maybe we have to return strings and concat them together
-  // only hard part is to print out the tuples correctly
-  // OR, maybe we could convert to JS arrays and print those?
-  // that will print with [ ], which isn't what we want, so we may
-  // just have to port over out C code
+  let mem = new BigInt64Array(memory.buffer);
+  console.log(snake_to_string(snakeval, mem));
   return snakeval;
+}
+
+function equal(v1, v2) {
+  let mem = new BigInt64Array(memory.buffer);
+
+  if (equal_help(v1, v2, mem)) {
+    return BOOL_TRUE;
+  }
+  return BOOL_FALSE;
+}
+
+function equal_help(v1, v2, mem) {
+  let unsigned_v1 = BigInt.asUintN(64, v1);
+  let unsigned_v2 = BigInt.asUintN(64, v2);
+
+  // if both are tuples, we have to recur
+  if (
+    (unsigned_v1 & TUPLE_TAG_MASK) === TUPLE_TAG &&
+    (unsigned_v2 & TUPLE_TAG_MASK) === TUPLE_TAG
+  ) {
+    // if both are nil, then they are equal
+    if (unsigned_v1 === NIL && unsigned_v2 === NIL) {
+      return true;
+    }
+    if (unsigned_v1 === NIL || unsigned_v2 === NIL) {
+      return false;
+    }
+
+    untagged_v1 = Number(v1 - TUPLE_TAG);
+    untagged_v2 = Number(v2 - TUPLE_TAG);
+
+    // we have to divide by word size to convert from bytes to words,
+    addr_v1 = untagged_v1 / WORD_SIZE;
+    addr_v2 = untagged_v2 / WORD_SIZE;
+
+    // then shift to go from SNAKEVAL to normal value
+    let size_v1 = mem[addr_v1] >> 1n;
+    let size_v2 = mem[addr_v2] >> 1n;
+
+    if (size_v1 != size_v2) {
+      return false;
+    }
+
+    for (let i = 1; i <= size_v1; i++) {
+      if (!equal_help(mem[addr_v1 + i], mem[addr_v2 + i], mem)) {
+        return false;
+      }
+    }
+    // if they make it past the for loop above, they are the same
+    return true;
+  }
+
+  // otherwise, fall back to normal equality
+  return v1 === v2;
+}
+
+// Only from browser
+function input() {  
+  let res = prompt("Enter in a number or literal").toLowerCase();
+
+  if (res === "true") {
+    return BOOL_TRUE;
+  }
+  if (res === "false") {
+    return BOOL_FALSE;
+  }
+  if (res === "nil") {
+    return NIL;
+  }
+
+  try {
+    return BigInt(res);
+  } catch (e) {
+    alert("That was not a valid entry, try again!");
+    return input();
+  }
 }
 
 const table = new WebAssembly.Table({
@@ -241,15 +335,18 @@ const importObject = {
     table: table,
     memory: memory,
     error: error,
+    print: print,
+    equal: equal,
+    input: input,
   },
 };
 
-function print_table(tagged_ptr) {
+function print_table() {
   const mem = new BigInt64Array(memory.buffer);
 
   // we untag, then shift because we access with words but ptr is in bytes
-  for (i = 0; i < 10; i++) {
-    console.log(mem[i]);
+  for (i = 0; i < 16; i++) {
+    console.log(mem[14 + i]);
   }
 }
 

@@ -24,7 +24,8 @@ let funcs =
            \       and def oddNat(n):\n\
            \         if n == 0: false else: evenNat(n - 1)\n\
            \       \n\
-           \       evenNat(21)" "" "false"]
+           \       evenNat(21)" "" "false";
+         tnb "nil_is_nil" "nil == nil" "" "true" ]
 ;;
 
 (*

@@ -53,6 +53,9 @@ Design decisions:
   - Our old calling convention very closely aligned with how locals / function parameters work
     in Wasm (first arguments, then locals (which we can turn into closure -> locals)), which meant
     we did not have to change anything at all!
+- Nil
+  - Start at offset 16 so we can use 0 to tag nil
+- 
 
 GC:
 - GC is _not_ currently implemented, but we have thought lots about it and made designed

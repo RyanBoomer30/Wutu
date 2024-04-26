@@ -112,7 +112,17 @@ and compile_cexpr
      The actual functions are defined later in compile_prog *)
   let load_num imm ec = [imm; WI64Const ec; WCall "load_num"] in
   let load_bool imm ec = [imm; WI64Const ec; WCall "load_bool"] in
-  let load_tuple imm ec = [imm; WI64Const ec; WCall "load_tuple"] in
+  (* this checks if the tuple is nil, in addition to doing the tag check *)
+  let load_tuple imm ec =
+    [ imm;
+      WI64HexConst const_nil;
+      WEq;
+      WIfThen [imm; WI64Const (err_code err_NIL_DEREF); WCall error_fun; WDrop];
+      (* then do the tag check like normal, now that we know it isn't nil *)
+      imm;
+      WI64Const ec;
+      WCall "load_tuple" ]
+  in
   let load_closure imm ec = [imm; WI64Const ec; WCall "load_closure"] in
   match e with
   | CIf (cond, thn, els, _) ->
@@ -169,7 +179,18 @@ and compile_cexpr
               WIfThenElse (([], I64), [WI64HexConst const_true], [WI64HexConst const_false]) ] )
       | And -> raise (InternalCompilerError "Error: missed desugar of &&")
       | Or -> raise (InternalCompilerError "Error: missed desugar of ||")
-      | CheckSize -> raise (NotYetImplemented "Unimplemented") )
+      | CheckSize ->
+          ( wfuns_so_far,
+            load_tuple imm_left (err_code err_PATTERN_NOT_TUPLE)
+            @ [WI32WrapI64; WLoad 0]
+            @ load_num imm_right (err_code err_PATTERN_NOT_TUPLE)
+            @ [ WNe;
+                WIfThen
+                  [imm_right; WI64Const (err_code err_TUPLE_SIZE_MISMATCH); WCall error_fun; WDrop ];
+                (* since we assign _ = checkSize(...), that will drop "the answer". 
+                   however, we don't really have "an answer", so this is the placeholder to drop *)
+                WI64HexConst const_nil ]
+          ) )
   | CApp (func, args, ct, _) -> (
     match ct with
     | Snake ->
@@ -199,9 +220,8 @@ and compile_cexpr
         in
         (wfuns_so_far, tag_arity_check @ (func_imm :: arg_imms) @ call)
     | Native name ->
-        let func_imm = compile_imm func env_tag env in
         let arg_imms = List.map (fun arg -> compile_imm arg env_tag env) args in
-        (wfuns_so_far, (func_imm :: arg_imms) @ [WCall name])
+        (wfuns_so_far, arg_imms @ [WCall name])
     | Prim -> raise (InternalCompilerError "Prim call type not supported")
     | Unknown -> raise (InternalCompilerError "Unknown call type") )
   | CTuple (elems, _) ->
@@ -440,7 +460,7 @@ let build_load_fun name mask tag to_untag : wfunc =
 ;;
 
 let compile_prog ((anfed : (tag * StringSet.t) aprogram), (env : int envt tag_envt)) : wmodule =
-  let imported_funs = (* initial_fun_env @ *) unwrapped_fun_env in
+  let imported_funs = initial_fun_env @ unwrapped_fun_env in
   let num_imports = List.length imported_funs in
   (* wrap up the imported runtime functions as imports *)
   let fun_imports =
@@ -484,11 +504,13 @@ let compile_prog ((anfed : (tag * StringSet.t) aprogram), (env : int envt tag_en
         :: fun_imports
       in
       { imports;
-        globals= [("r15", Mut I32, 0)];
+        (* we start at 16 that way nil can be a tagged pointer to 0
+           and not conflict with real tuples *)
+        globals= [("r15", Mut I32, 16)];
         funtypes= type_list;
         (* subtract one, since build_list starts at 1
            the table includes the imported functions, so we have to skip them over *)
-        elems= (0, build_list (fun x -> x - 1 + num_imports) (List.length funs));
+        elems= (0, build_list (fun x -> x - 1 + num_imports) (List.length fun_imports));
         funcs= all_funs }
 ;;
 

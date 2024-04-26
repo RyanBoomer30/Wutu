@@ -11,8 +11,8 @@
   - [x] Lambda
   - [x] EApp
   - [x] LetRec
-  - [ ] Nil
-  - [ ] FIGURE OUT: currently, `nil` doesn't work the way we want it to, since 0 is a valid
+  - [x] Nil
+  - [x] FIGURE OUT: currently, `nil` doesn't work the way we want it to, since 0 is a valid
         slot in the linear memory. We can offset by 16, or the shadow stack will do that for us
         (although I am not optimistic about being able to get to GC...)
   - [ ] Tail calls
