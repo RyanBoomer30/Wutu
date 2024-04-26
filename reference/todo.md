@@ -10,14 +10,15 @@
 - [ ] Code generation (AKA the hard part...): test as you go!
   - [x] Lambda
   - [x] EApp
-  - [ ] LetRec
+  - [x] LetRec
+  - [ ] Nil
+  - [ ] FIGURE OUT: currently, `nil` doesn't work the way we want it to, since 0 is a valid
+        slot in the linear memory. We can offset by 16, or the shadow stack will do that for us
+        (although I am not optimistic about being able to get to GC...)
+  - [ ] Tail calls
 - [ ] Runtime functions
   - [ ] Printing tuples
   - [ ] Equal, input
-  - [ ] Other interesting stuff
-- [ ] FIGURE OUT: currently, `nil` doesn't work the way we want it to, since 0 is a valid
-      slot in the linear memory. We can offset by 16, or the shadow stack will do that for us
-      (although I am not optimistic about being able to get to GC...)
 
 - [ ] Figure out how to serve `.wasm` files
   1. We can write our `.wat` on the server, invoke `wat2wasm`, and then read the resulting `.wasm` file
@@ -27,6 +28,8 @@
     (probably fix the deprecated stuff too), and maybe extra `compile` handlers
     - Remember, don't mix Core with the standard library stuff
 - [ ] Make file rule for server? Phony exec? Actual build? There were some compilation troubles…
+
+- [ ] Other interesting stuff like interop stuff
 
 
 ## Think

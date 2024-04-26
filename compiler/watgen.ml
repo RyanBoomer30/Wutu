@@ -59,7 +59,47 @@ let rec compile_aexpr
          while tagged pointers to the allocated but not yet populated closures are
          on our stack.
          they temporarily point to part of the linear memory which may be filled with junk *)
-      raise (NotYetImplemented "Unimplemented")
+      (* helper for allocation *)
+      let allocate_closure (name, lam) =
+        let closure_size = List.length (StringSet.elements (get_fv_C lam)) + 3 in
+        let padded_size = closure_size + (closure_size mod 2) in
+        let store_ptr =
+          [ WGlobalGet "r15";
+            WI64ExtendI32;
+            WI64HexConst closure_tag;
+            WAdd I64;
+            WLocalSet (find (find env env_tag) name) ]
+        in
+        let update_r15 =
+          [WGlobalGet "r15"; WI32Const (padded_size * word_size); WAdd I32; WGlobalSet "r15"]
+        in
+        store_ptr @ update_r15
+      in
+      (* allocate space for all of the closures... *)
+      let allocate_closures = List.concat (List.map allocate_closure binds) in
+      (* helper for body compilation *)
+      let compile_lambda (wfunc_so_far, instrs_so_far) (name, lam) =
+        match lam with
+        | CLambda (args, body, (lam_tag, fvs)) ->
+            let free_vars = StringSet.elements fvs in
+            let arity = List.length args in
+            let with_this_wfunc = compile_wfunc body lam_tag arity free_vars wfunc_so_far env in
+            let closure_populate =
+              populate_closure free_vars
+                (WLocalGet (find (find env env_tag) name))
+                true arity
+                (List.length with_this_wfunc - 1)
+                (find env env_tag)
+            in
+            (with_this_wfunc, instrs_so_far @ closure_populate)
+        | _ -> raise (InternalCompilerError "Expected lambda in letrec")
+      in
+      (* then populate all closures, accumulating wfuncs to lift *)
+      let wfuncs_with_bound, populate_all =
+        List.fold_left compile_lambda (wfuns_so_far, []) binds
+      in
+      let wfuncs, body_instrs = compile_aexpr body env_tag env wfuncs_with_bound is_tail in
+      (wfuncs, allocate_closures @ populate_all @ body_instrs)
 
 and compile_cexpr
     (e : (tag * StringSet.t) cexpr)
@@ -136,15 +176,16 @@ and compile_cexpr
         let func_imm = compile_imm func env_tag env in
         let arg_imms = List.map (fun arg -> compile_imm arg env_tag env) args in
         (* if (arity != #args + 1) then explode otherwise continue  *)
-        let tag_arity_check = load_closure func_imm (err_code err_CALL_NOT_CLOSURE) @ [
-          WI32WrapI64;
-          WLoad 0;
-          (* if arity (stored as SNAKEVAL, without including closure)
-             is not equal to the # arguments we supply, then error *)
-          WI64Const (Int64.of_int (2 * (List.length args)));
-          WNe;
-          WIfThen [func_imm; WI64Const (err_code err_CALL_ARITY_ERR); WCall error_fun; WDrop]
-        ] in
+        let tag_arity_check =
+          load_closure func_imm (err_code err_CALL_NOT_CLOSURE)
+          @ [ WI32WrapI64;
+              WLoad 0;
+              (* if arity (stored as SNAKEVAL, without including closure)
+                 is not equal to the # arguments we supply, then error *)
+              WI64Const (Int64.of_int (2 * List.length args));
+              WNe;
+              WIfThen [func_imm; WI64Const (err_code err_CALL_ARITY_ERR); WCall error_fun; WDrop] ]
+        in
         let call =
           [ func_imm;
             WI32WrapI64;
@@ -157,7 +198,10 @@ and compile_cexpr
             WCallIndirect (1 + List.length args) ]
         in
         (wfuns_so_far, tag_arity_check @ (func_imm :: arg_imms) @ call)
-    | Native name -> raise (NotYetImplemented "TODO")
+    | Native name ->
+        let func_imm = compile_imm func env_tag env in
+        let arg_imms = List.map (fun arg -> compile_imm arg env_tag env) args in
+        (wfuns_so_far, (func_imm :: arg_imms) @ [WCall name])
     | Prim -> raise (InternalCompilerError "Prim call type not supported")
     | Unknown -> raise (InternalCompilerError "Unknown call type") )
   | CTuple (elems, _) ->
@@ -329,29 +373,45 @@ and populate_closure free_vars access tagged arity funtbl_ptr cur_env : winstr l
     else
       offset
   in
+  (* if tagged, then we are accessing a local AKA an i64. if not tagged, we are accessing r15 *)
+  let access_i32 =
+    if tagged then
+      [access; WI32WrapI64]
+    else
+      [access]
+  in
   let populate_arity =
     (* we store 2 * arity as a SNAKEVAL like before, so it doesn't follow it as a pointer *)
-    [access; WI64Const (Int64.of_int (arity * 2)); WStore (adjust 0)]
+    (* we can't use adjust, since if we are tagged then we get a negative value... *)
+    if tagged then
+      [ access;
+        WI64HexConst closure_tag;
+        WSub I64;
+        WI32WrapI64;
+        WI64Const (Int64.of_int (arity * 2));
+        WStore 0 ]
+    else
+      access_i32 @ [WI64Const (Int64.of_int (arity * 2)); WStore 0]
   in
   let populate_funtbl_ptr =
     (* we store 2 * funtbl_ptr for GC, so it doesn't follow it as a pointer *)
-    [access; WI64Const (Int64.of_int (funtbl_ptr * 2)); WStore (adjust word_size)]
+    access_i32 @ [WI64Const (Int64.of_int (funtbl_ptr * 2)); WStore (adjust word_size)]
   in
   let populate_num_fv =
     (* same as above *)
-    [access; WI64Const (Int64.of_int (num_free_vars * 2)); WStore (adjust (word_size * 2))]
+    access_i32 @ [WI64Const (Int64.of_int (num_free_vars * 2)); WStore (adjust (word_size * 2))]
   in
   let populate_fv =
     List.flatten
       (List.mapi
          (fun i name ->
-           [access; WLocalGet (find cur_env name); WStore (adjust (word_size * (3 + i)))] )
+           access_i32 @ [WLocalGet (find cur_env name); WStore (adjust (word_size * (3 + i)))] )
          free_vars )
   in
   let size_unpadded = num_free_vars + 3 in
   let maybe_populate_padding =
     if size_unpadded mod 2 = 1 then
-      [access; WI64Const 0L; WStore (size_unpadded * word_size)]
+      access_i32 @ [WI64Const 0L; WStore (size_unpadded * word_size)]
     else
       []
   in
@@ -426,7 +486,7 @@ let compile_prog ((anfed : (tag * StringSet.t) aprogram), (env : int envt tag_en
       { imports;
         globals= [("r15", Mut I32, 0)];
         funtypes= type_list;
-        (* subtract one, since build_list starts at 1 
+        (* subtract one, since build_list starts at 1
            the table includes the imported functions, so we have to skip them over *)
         elems= (0, build_list (fun x -> x - 1 + num_imports) (List.length funs));
         funcs= all_funs }
