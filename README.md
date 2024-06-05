@@ -23,6 +23,7 @@ Platform-specific features:
 # Installation
 First, you would want to install the `opam` library for your library. Then, use the following commands to install the required libraries (We suggest that you create an environment for this)
 ```
+sudo apt install opam
 opam init
 opam switch create 4.14.1
 opam install extlib ounit batteries
