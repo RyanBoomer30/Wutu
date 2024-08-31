@@ -1,24 +1,24 @@
 # Wutu
-Compiler with A-Normal Form IR for non-trivial expression code generation targetting x64 assembly and WASM. All compiled time is written in Ocaml and C/Javascript for runtime.
+Compiler for a Python-inspired functional language with A-Normal Form IR, targeting both x86_64 and WebAssembly. Uses OCaml for compiler passes, with C/JavaScript for runtime support.
 
 # Features
 The language supports:
-- Basic algebraic operations up to 62-bit signed integers
-- Tail call
-- Sequences, Tuples
-- Lambda
-- Function Recursion
-- Shadow
-- Register Allocation
-- Printing
+- Algebraic operations for 63-bit signed integers
+- Anonymous, first-class, mutually-recursive functions
+- Arbitrary tail-call elimination
+- Mutable tuples with destructuring
+- Compile-time scope/shadowing analysis
+- Runtime type (tag) checking
+- I/O primitives
 
 Platform-specific features:
-| Features | X86  | WASM |
+| Features | x86_64  | Wasm |
 | ---------| ------------- | ------------- |
-| Garbage Collection  |  ✅  | ❌  |
-| Trigger   |  ❌  | ✅  |
-| Alert   |  ❌  | ✅  |
-| BigBang   |  ❌  | ✅  |
+| Platform Interoperability  |  ✅  |  ✅  |
+| Register Allocation  |  ✅  |  ❌  |
+| Garbage Collection  |  ✅  |  ❌  |
+| DOM Integration  |  ❌  |  ✅  |
+| Interactive Textual Programs   |  ❌  |  ✅  |
 
 # Installation
 First, you would want to install the `opam` library for your library. Then, use the following commands to install the required libraries (We suggest that you create an environment for this)
@@ -28,6 +28,7 @@ opam init
 opam switch create 4.14.1
 opam install extlib ounit batteries
 ```
+
 Next, you need to install Clang and NodeJS
 ```
 sudo apt install clang=15.0.0
@@ -42,6 +43,7 @@ make main
 make test
 dune build
 ```
+
 To make sure that the compiler is correctly installed, run the test to validate (all tests should pass)
 ```
 ./test
